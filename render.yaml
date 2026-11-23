@@ -1,0 +1,12 @@
+# Настройки для Render (render.com): New → Blueprint → выбрать этот репозиторий.
+services:
+  - type: web
+    name: quizpulse
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
