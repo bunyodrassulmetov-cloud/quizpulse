@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400">
+<defs>
+<clipPath id="r"><rect width="640" height="400" rx="28"/></clipPath>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb35c"/><stop offset="1" stop-color="#ff6f61"/></linearGradient><radialGradient id="sun" cx="0.45" cy="0.4" r="0.6"><stop offset="0" stop-color="#fffbe0"/><stop offset="1" stop-color="#ffc93c"/></radialGradient>
+</defs>
+<g clip-path="url(#r)">
+<rect width="640" height="400" fill="url(#bg)"/>
+<polygon points="438,206 495,215 438,224" fill="#fff2a8" opacity=".75"/><polygon points="432,251 482,282 425,269" fill="#fff2a8" opacity=".75"/><polygon points="410,292 444,339 397,305" fill="#fff2a8" opacity=".75"/><polygon points="374,320 387,377 356,327" fill="#fff2a8" opacity=".75"/><polygon points="329,333 320,390 311,333" fill="#fff2a8" opacity=".75"/><polygon points="284,327 253,377 266,320" fill="#fff2a8" opacity=".75"/><polygon points="243,305 196,339 230,292" fill="#fff2a8" opacity=".75"/><polygon points="215,269 158,282 208,251" fill="#fff2a8" opacity=".75"/><polygon points="202,224 145,215 202,206" fill="#fff2a8" opacity=".75"/><polygon points="208,179 158,148 215,161" fill="#fff2a8" opacity=".75"/><polygon points="230,138 196,91 243,125" fill="#fff2a8" opacity=".75"/><polygon points="266,110 253,53 284,103" fill="#fff2a8" opacity=".75"/><polygon points="311,97 320,40 329,97" fill="#fff2a8" opacity=".75"/><polygon points="356,103 387,53 374,110" fill="#fff2a8" opacity=".75"/><polygon points="397,125 444,91 410,138" fill="#fff2a8" opacity=".75"/><polygon points="425,161 482,148 432,179" fill="#fff2a8" opacity=".75"/><circle cx="320" cy="215" r="150" fill="#fff" opacity=".12"/>
+<circle cx="320" cy="215" r="105" fill="url(#sun)"/>
+<path d="M0 320 Q160 270 320 312 T640 300 V400 H0 Z" fill="#e8834a"/>
+<path d="M0 350 Q200 310 380 352 T640 340 V400 H0 Z" fill="#c9653a"/>
+</g>
+</svg>

@@ -180,5 +180,21 @@
   const avatar = (name, color, extraClass = '') =>
     `<span class="avatar c${Number(color) % 10 || 0} ${extraClass}" aria-hidden="true">${esc(initials(name))}</span>`;
 
-  window.QP = { LETTERS, esc, $, $$, toast, emit, watchConnection, countdown, ringSVG, updateRing, confetti, animateNumber, fmt, BRAND_SVG, ICONS, avatar, initials };
+  /**
+   * Сценарий пьедестала (мс от начала экрана итогов): барабанная дробь и объявление
+   * 3-го, затем 2-го и в конце 1-го места. Общий для ведущего и телефонов.
+   */
+  function podiumTimeline(count) {
+    const places = [3, 2, 1].filter((p) => p <= count);
+    let t = 1200;
+    const steps = places.map((place) => {
+      const roll = place === 1 ? 3200 : 2200;
+      const step = { place, rollAt: t, roll, hitAt: t + roll };
+      t += roll + (place === 1 ? 0 : 900);
+      return step;
+    });
+    return { steps, endAt: t + 1800 };
+  }
+
+  window.QP = { podiumTimeline, LETTERS, esc, $, $$, toast, emit, watchConnection, countdown, ringSVG, updateRing, confetti, animateNumber, fmt, BRAND_SVG, ICONS, avatar, initials };
 })();

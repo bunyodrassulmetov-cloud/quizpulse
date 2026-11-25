@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400">
+<defs>
+<clipPath id="r"><rect width="640" height="400" rx="28"/></clipPath>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe4ff"/><stop offset="1" stop-color="#e8f5ff"/></linearGradient><linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b8ed0"/><stop offset="1" stop-color="#0d2f63"/></linearGradient><linearGradient id="rock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a4a46"/><stop offset="1" stop-color="#2f2523"/></linearGradient>
+</defs>
+<g clip-path="url(#r)">
+<rect width="640" height="400" fill="url(#bg)"/>
+<rect x="0" y="0" width="640" height="150" fill="url(#bg)"/>
+<rect x="0" y="150" width="640" height="250" fill="url(#sea)"/>
+<path d="M20 400 L250 70 Q270 50 290 70 L520 400 Z" fill="url(#rock)"/>
+<path d="M237 90 L250 70 Q270 50 290 70 L303 90 Q285 82 270 95 Q255 82 237 90 Z" fill="#ffffff"/>
+<rect x="0" y="150" width="640" height="250" fill="#1f6fb0" opacity=".35"/>
+<path d="M0 150 Q40 140 80 150 T160 150 T240 150 T320 150 T400 150 T480 150 T560 150 T640 150" stroke="#e6f6ff" stroke-width="4" fill="none"/>
+<g stroke="#ffe066" stroke-width="4" stroke-dasharray="10 8"><line x1="560" y1="62" x2="560" y2="392"/><line x1="545" y1="62" x2="575" y2="62"/><line x1="545" y1="392" x2="575" y2="392"/></g>
+<path d="M552 75 l8 -14 l8 14 z" fill="#ffe066"/><path d="M552 380 l8 14 l8 -14 z" fill="#ffe066"/>
+<g opacity=".9"><path d="M600 150 L612 112 L624 150 Z" fill="#8c7a73"/><path d="M608 124 L612 112 L616 124 Z" fill="#fff"/></g>
+<rect x="0" y="392" width="640" height="8" fill="#0a2040"/>
+</g>
+</svg>

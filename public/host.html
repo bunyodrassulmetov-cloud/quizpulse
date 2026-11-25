@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet" />
+  <!-- только знак ﷺ (салляЛлаху алейхи ва саллям) из шрифта Amiri -->
+  <link href="https://fonts.googleapis.com/css2?family=Amiri&text=%EF%B7%BA&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23c8ff3e'/%3E%3Cpath d='M2 12h4l2.5-6 4 13 3-9 1.5 2H22' fill='none' stroke='%2311160a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <style>
@@ -100,19 +102,41 @@
     .move { font-size: 14px; margin-left: 8px; }
     .move.up { color: var(--ok); } .move.down { color: var(--bad); }
 
-    .podium { flex: 1; display: flex; justify-content: center; align-items: flex-end; gap: 18px; min-height: 380px; padding-top: 30px; }
-    .pod { width: clamp(140px, 18vw, 230px); display: grid; justify-items: center; gap: 10px; text-align: center; }
+    .podium { position: relative; overflow: hidden; flex: 1; display: flex; justify-content: center; align-items: flex-end; gap: 18px; min-height: 380px; padding-top: 30px; }
+    .pod { position: relative; z-index: 1; width: clamp(140px, 18vw, 230px); display: grid; justify-items: center; gap: 10px; text-align: center; }
     .pod .av { font-size: clamp(24px, 3vw, 36px); }
     .pod .nm { font-weight: 800; font-size: clamp(16px, 1.8vw, 24px); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .pod .block { width: 100%; border-radius: 18px 18px 0 0; display: grid; align-content: start; justify-items: center; padding-top: 16px; gap: 6px; transform-origin: bottom; animation: grow 0.9s cubic-bezier(.2,.8,.2,1) both; }
+    .pod .block { width: 100%; border-radius: 18px 18px 0 0; display: grid; align-content: start; justify-items: center; padding-top: 16px; gap: 6px; transform-origin: bottom; transform: scaleY(0); transition: transform 0.9s cubic-bezier(.2,.9,.25,1.15); }
     .pod .place { font-family: var(--font-display); font-size: clamp(36px, 5vw, 64px); color: rgba(0,0,0,0.55); }
     .pod .pts { font-weight: 800; color: rgba(0,0,0,0.65); }
-    .pod.p1 .block { height: 260px; background: linear-gradient(180deg, #e3ff8f, var(--accent)); animation-delay: 1.4s; }
-    .pod.p2 .block { height: 190px; background: linear-gradient(180deg, #e6e9f2, #b9c0d4); animation-delay: 0.8s; }
-    .pod.p3 .block { height: 140px; background: linear-gradient(180deg, #ffc896, #e28a47); animation-delay: 0.2s; }
-    .pod.p1 .who { animation: fadeIn 0.5s ease 2.2s both; }
-    .pod.p2 .who { animation: fadeIn 0.5s ease 1.6s both; }
-    .pod.p3 .who { animation: fadeIn 0.5s ease 1s both; }
+    .pod.p1 .block { height: 260px; background: linear-gradient(180deg, #e3ff8f, var(--accent)); }
+    .pod.p2 .block { height: 190px; background: linear-gradient(180deg, #e6e9f2, #b9c0d4); }
+    .pod.p3 .block { height: 140px; background: linear-gradient(180deg, #ffc896, #e28a47); }
+    .pod .who { opacity: 0; transform: translateY(24px) scale(0.7); transition: opacity 0.4s ease 0.45s, transform 0.6s cubic-bezier(.2,1.5,.4,1) 0.45s; }
+    /* во время дроби — дрожащая «заготовка» постамента */
+    .pod.rolling .block { transform: scaleY(0.07); animation: drum 0.09s linear infinite alternate; transition: transform 0.3s; }
+    @keyframes drum { from { translate: -2px 0; } to { translate: 2px 0; } }
+    .pod.shown .block { transform: scaleY(1); animation: none; }
+    .pod.shown .who { opacity: 1; transform: none; }
+    .pod.instant .block, .pod.instant .who { transition: none; }
+    .pod.p1.shown .block { box-shadow: 0 0 70px rgba(200, 255, 62, 0.45); }
+    .rays { position: absolute; z-index: 0; left: 50%; bottom: 60px; width: 900px; height: 900px; margin-left: -450px; margin-bottom: -350px; border-radius: 50%; opacity: 0; transition: opacity 1.2s ease; pointer-events: none;
+      background: repeating-conic-gradient(rgba(200, 255, 62, 0.16) 0 9deg, transparent 9deg 22deg); -webkit-mask: radial-gradient(circle, #000 18%, transparent 62%); mask: radial-gradient(circle, #000 18%, transparent 62%); animation: spin 26s linear infinite; }
+    .rays.on { opacity: 1; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .announce { text-align: center; font-family: var(--font-display); font-weight: 700; font-size: clamp(22px, 3vw, 40px); min-height: 1.4em; color: var(--text); letter-spacing: -0.01em; }
+    .announce.rolling { color: var(--muted); animation: pulse 0.5s ease-in-out infinite alternate; }
+    .announce.win { color: var(--accent); animation: bounceIn 0.6s cubic-bezier(.2,1.4,.4,1) both; }
+    @keyframes pulse { from { opacity: 0.45; transform: scale(0.98); } to { opacity: 1; transform: scale(1.02); } }
+    .later { opacity: 0; pointer-events: none; transition: opacity 0.6s; }
+    .preview .qtext.with-img { font-size: clamp(24px, 3.2vw, 46px); margin: 14px auto 16px; }
+    .pv-img { display: block; max-height: 38vh; max-width: min(100%, 720px); margin: 0 auto 22px; border-radius: 20px; box-shadow: var(--shadow); }
+    .modal.wide { width: min(860px, 100%); max-height: 90vh; overflow: auto; }
+    .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+    .gallery button { padding: 0; border: 2px solid transparent; border-radius: 14px; overflow: hidden; background: var(--surface-2); cursor: pointer; text-align: left; color: var(--text); }
+    .gallery button:hover, .gallery button:focus-visible { border-color: var(--accent); }
+    .gallery img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+    .gallery span { display: block; padding: 8px 10px; font-size: 13px; font-weight: 700; }
     .who { display: grid; justify-items: center; gap: 6px; max-width: 100%; }
     table.res { width: 100%; border-collapse: collapse; font-size: 15px; }
     table.res th, table.res td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); }

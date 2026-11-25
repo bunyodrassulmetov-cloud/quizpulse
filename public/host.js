@@ -1,6 +1,6 @@
 /* Экран ведущего: библиотека викторин, редактор и проведение игры */
 (function () {
-  const { LETTERS, esc, $, $$, toast, emit, watchConnection, countdown, ringSVG, updateRing, confetti, animateNumber, fmt, BRAND_SVG, ICONS, avatar } = window.QP;
+  const { LETTERS, esc, $, $$, toast, emit, watchConnection, countdown, ringSVG, updateRing, confetti, animateNumber, fmt, BRAND_SVG, ICONS, avatar, podiumTimeline } = window.QP;
   const Sound = window.QPSound;
   $('#brandMark').innerHTML = BRAND_SVG;
 
@@ -117,8 +117,89 @@
     });
   }
 
-  // Встроенные викторины: добавляются один раз (если ведущий удалил — больше не появятся)
-  const BUILTIN = [demoQuiz, islamQuiz];
+  const IMG = (f) => `/img/quiz/${f}.svg`;
+
+  function quranQuiz() {
+    return normalizeQuiz({
+      id: 'quran-suras-1',
+      title: 'Коран и суры',
+      questions: [
+        { image: IMG('clock'), text: 'С какой сурой ассоциируется эта картинка?', answers: ['Аль-Ихлас', 'Аль-Аср', 'Аль-Каусар', 'Ан-Наср'], correct: [1], timeLimit: 20 },
+        { text: 'В какой суре находится Аят аль-Курси?', answers: ['Аль-Бакара', 'Аль Имран', 'Ан-Ниса', 'Аль-Маида'], correct: [0], timeLimit: 20 },
+        { image: IMG('fig'), text: 'Какая сура названа в честь плода с этой картинки?', answers: ['Ар-Рахман', 'Аль-Вакиа', 'Ат-Тин', 'Аль-Маида'], correct: [2], timeLimit: 20 },
+        { text: 'Какую суру называют «Мать Книги» (Умм аль-Китаб)?', answers: ['Аль-Фатиха', 'Аль-Ихлас', 'Ясин', 'Аль-Мульк'], correct: [0], timeLimit: 20 },
+        { image: IMG('pen'), text: 'Какая сура названа по предмету на этой картинке?', answers: ['Аль-Мульк', 'Аль-Калам', 'Аль-Хакка', 'Аль-Муззаммиль'], correct: [1], timeLimit: 20 },
+        { text: 'В какой суре «Бисмилляхи-р-Рахмани-р-Рахим» встречается дважды?', answers: ['Ан-Намль', 'Аль-Бакара', 'Ат-Тауба', 'Юсуф'], correct: [0], timeLimit: 20 },
+        { image: IMG('iron'), text: 'Какая сура названа по металлу с этой картинки?', answers: ['Аз-Зухруф', 'Аль-Хадид', 'Аль-Хашр', 'Аль-Ахзаб'], correct: [1], timeLimit: 20 },
+        { text: 'Какая сура названа личным именем женщины?', answers: ['Марьям', 'Ан-Ниса', 'Аль-Муджадаля', 'Аль-Мумтахана'], correct: [0], timeLimit: 20 },
+        { image: IMG('sun'), text: 'Какая сура начинается клятвой этим светилом?', answers: ['Аль-Камар', 'Ан-Наджм', 'Аль-Лейл', 'Аш-Шамс'], correct: [3], timeLimit: 20 },
+        { text: 'Имя какого пророка чаще всего упоминается в Коране?', answers: ['Ибрахим', 'Муса', 'Иса', 'Нух'], correct: [1], timeLimit: 20 },
+        { text: 'В какой суре 31 раз повторяется аят «Какую же из милостей вашего Господа вы считаете ложью?»', answers: ['Аль-Вакиа', 'Ясин', 'Ар-Рахман', 'Аль-Мульк'], correct: [2], timeLimit: 20 },
+        { type: 'truefalse', text: 'Коран начал ниспосылаться в месяце Рамадан.', correct: [0], timeLimit: 10, points: 2 },
+      ],
+    });
+  }
+
+  function siraQuiz() {
+    return normalizeQuiz({
+      id: 'sira-1',
+      title: 'Жизнеописание Пророка ﷺ',
+      questions: [
+        { text: 'Как звали мать Пророка Мухаммада ﷺ?', answers: ['Халима', 'Амина', 'Хадиджа', 'Фатима'], correct: [1], timeLimit: 20 },
+        { image: IMG('dates'), text: 'Чем Пророк ﷺ советовал разговляться в первую очередь?', answers: ['Мёдом', 'Молоком', 'Финиками', 'Хлебом'], correct: [2], timeLimit: 20 },
+        { text: 'Как звали кормилицу Пророка ﷺ из племени бану Саад, у которой он провёл раннее детство в пустыне?', answers: ['Халима ас-Саадия', 'Сумайя', 'Асма', 'Фатима'], correct: [0], timeLimit: 20 },
+        { image: IMG('trench'), text: 'По чьему совету мусульмане выкопали такой ров вокруг Медины?', answers: ['Абу Бакра ас-Сиддика', 'Умара ибн аль-Хаттаба', 'Салмана аль-Фариси', 'Али ибн Абу Талиба'], correct: [2], timeLimit: 20 },
+        { text: 'Кто первой из женщин приняла Ислам?', answers: ['Аиша', 'Хадиджа', 'Фатима', 'Сумайя'], correct: [1], timeLimit: 20 },
+        { text: 'Сколько лет было Пророку ﷺ, когда ему было ниспослано первое откровение?', answers: ['25', '33', '40', '50'], correct: [2], timeLimit: 20 },
+        { image: IMG('ring'), text: 'Какая надпись была выгравирована на перстне-печати Пророка ﷺ?', answers: ['«Ля иляха илля Ллах»', '«Мухаммад Расулуллах»', '«Бисмилля»', '«Аллаху Акбар»'], correct: [1], timeLimit: 20 },
+        { text: 'Как называют год, когда умерли Хадиджа и Абу Талиб?', answers: ['Год слона', 'Год печали', 'Год делегаций', 'Год победы'], correct: [1], timeLimit: 20 },
+        { image: IMG('dome'), text: 'В каком городе находится эта мечеть — Мечеть Пророка ﷺ?', answers: ['Мекка', 'Медина', 'Иерусалим', 'Таиф'], correct: [1], timeLimit: 20 },
+        { type: 'truefalse', text: 'Пророк ﷺ похоронен в Мекке.', correct: [1], timeLimit: 10, points: 2 },
+      ],
+    });
+  }
+
+  function tawhidQuiz() {
+    return normalizeQuiz({
+      id: 'tawhid-1',
+      title: 'Таухид — единобожие',
+      questions: [
+        { image: IMG('stars'), text: 'Какой пророк, наблюдая звезду, луну и солнце, доказывал своему народу, что поклоняться можно только Творцу?', answers: ['Нух', 'Ибрахим', 'Муса', 'Худ'], correct: [1], timeLimit: 20 },
+        { text: 'Что означают слова «Ля иляха илля Ллах»?', answers: ['Нет божества, достойного поклонения, кроме Аллаха', 'Аллах Велик', 'Слава Аллаху', 'Нет мощи и силы, кроме как у Аллаха'], correct: [0], timeLimit: 20 },
+        { text: 'Как называется придавание Аллаху сотоварищей?', answers: ['Нифак', 'Ширк', 'Бид‘а', 'Риба'], correct: [1], timeLimit: 20 },
+        { image: IMG('ship'), text: 'В какой ситуации, по Корану, даже многобожники искренне взывали только к Аллаху?', answers: ['Во время бури на корабле', 'Во время праздника', 'При строительстве дома', 'Во время торговли'], correct: [0], timeLimit: 20 },
+        { text: 'Какая сура полностью посвящена единобожию и, по хадису, равна трети Корана?', answers: ['Аль-Фатиха', 'Аль-Ихлас', 'Аль-Кафирун', 'Ан-Нас'], correct: [1], timeLimit: 20 },
+        { text: 'Какой аят Пророк ﷺ назвал величайшим в Книге Аллаха?', answers: ['Аят аль-Курси', 'Первый аят Аль-Фатихи', 'Последний аят Аль-Бакары', 'Аят о Свете'], correct: [0], timeLimit: 20 },
+        { image: IMG('fingerprint'), text: 'В суре «Аль-Кияма» сказано, что Аллах способен в точности восстановить даже…', answers: ['волосы', 'кончики пальцев', 'ресницы', 'голос'], correct: [1], timeLimit: 20 },
+        { text: 'Сколько имён Аллаха названо в хадисе: «У Аллаха … имён, кто перечислит их — войдёт в Рай»?', answers: ['33', '70', '99', '100'], correct: [2], timeLimit: 20 },
+        { image: IMG('rain'), text: 'Оживление мёртвой земли дождём Коран приводит как довод…', answers: ['смены дня и ночи', 'воскрешения после смерти', 'движения звёзд', 'строительства Каабы'], correct: [1], timeLimit: 20 },
+        { type: 'truefalse', text: 'Имена Аллаха человек может придумывать сам, по своему мнению.', correct: [1], timeLimit: 10, points: 2 },
+      ],
+    });
+  }
+
+  function worldQuiz() {
+    return normalizeQuiz({
+      id: 'world-1',
+      title: 'Удивительный мир: загадки и факты',
+      questions: [
+        { image: IMG('honey'), text: 'Чем этот продукт из древнеегипетских гробниц удивил археологов?', answers: ['Он был съедобен спустя тысячи лет', 'Он превратился в камень', 'Он светился в темноте', 'Он стал солёным'], correct: [0], timeLimit: 20 },
+        { text: 'Как называется самое глубокое место Мирового океана?', answers: ['Бермудский треугольник', 'Марианская впадина', 'Мёртвое море', 'Озеро Байкал'], correct: [1], timeLimit: 20 },
+        { image: IMG('maunakea'), text: 'Эта гора выше Эвереста, если мерить от подножия на дне океана. Где она находится?', answers: ['Исландия', 'Гавайи', 'Япония', 'Новая Зеландия'], correct: [1], timeLimit: 20 },
+        { text: 'Сколько костей в скелете взрослого человека?', answers: ['186', '206', '226', '300'], correct: [1], timeLimit: 20 },
+        { image: IMG('sunlight'), text: 'Сколько примерно летит свет от Солнца до Земли?', answers: ['8 секунд', '8 минут', '8 часов', '8 дней'], correct: [1], timeLimit: 20 },
+        { text: 'Какой орган весит около 2% массы тела, но тратит около 20% всей энергии?', answers: ['Сердце', 'Мозг', 'Печень', 'Желудок'], correct: [1], timeLimit: 20 },
+        { image: IMG('venus'), text: 'На этой планете Солнце встаёт на западе, а сутки длиннее года. Что это за планета?', answers: ['Марс', 'Венера', 'Меркурий', 'Юпитер'], correct: [1], timeLimit: 20 },
+        { text: 'Какая часть поверхности Земли покрыта водой?', answers: ['Около 51%', 'Около 61%', 'Около 71%', 'Около 81%'], correct: [2], timeLimit: 20 },
+        { type: 'truefalse', text: 'Великую Китайскую стену видно с Луны невооружённым глазом.', correct: [1], timeLimit: 10 },
+        { text: 'Какой природный материал самый твёрдый?', answers: ['Гранит', 'Алмаз', 'Железо', 'Кварц'], correct: [1], timeLimit: 20, points: 2 },
+      ],
+    });
+  }
+
+  // Встроенные викторины: добавляются один раз (если ведущий удалил — больше не появятся).
+  // Новые встают в начало списка, поэтому порядок — от нижней к верхней.
+  const BUILTIN = [demoQuiz, islamQuiz, worldQuiz, quranQuiz, tawhidQuiz, siraQuiz];
   const STORE_SEEDED = 'qp-seeded';
 
   function loadQuizzes() {
@@ -263,7 +344,7 @@
         ${list.length ? `<div class="quiz-grid">
           ${list.map((q) => `
             <article class="card quiz-card" data-id="${esc(q.id)}">
-              <div class="meta">${q.questions.length} ${plural(q.questions.length)} · ${new Date(q.updatedAt).toLocaleDateString('ru-RU')}</div>
+              <div class="meta">${q.questions.length} ${plural(q.questions.length)}${q.questions.some((x) => x.image) ? ` · ${q.questions.filter((x) => x.image).length} с картинками` : ''}</div>
               <h3>${esc(q.title || 'Без названия')}</h3>
               <div class="actions">
                 <button class="btn btn-primary btn-sm" data-act="play">${ICONS.play} Запустить</button>
@@ -497,8 +578,12 @@
         </div>
       </div>
       <div>
-        <label class="label" for="qImg">Картинка (необязательно) — ссылка https://…</label>
-        <input class="input" id="qImg" maxlength="500" placeholder="https://example.com/picture.jpg" value="${esc(q.image)}" />
+        <label class="label" for="qImg">Картинка (необязательно) — из галереи или ссылка https://…</label>
+        <div class="row" style="flex-wrap:wrap;gap:8px">
+          <input class="input" id="qImg" maxlength="500" placeholder="https://example.com/picture.jpg" value="${esc(q.image)}" style="flex:1;min-width:220px" />
+          <button class="btn btn-sm" id="galleryBtn" type="button">Выбрать из галереи</button>
+          <button class="btn btn-sm btn-ghost" id="imgClear" type="button" ${q.image ? '' : 'hidden'}>Убрать</button>
+        </div>
         <div id="imgPrev" style="margin-top:10px"></div>
       </div>`;
 
@@ -553,7 +638,8 @@
     const img = $('#qImg');
     const showPrev = () => {
       const v = img.value.trim();
-      $('#imgPrev').innerHTML = /^https?:\/\//i.test(v) ? `<img class="img-prev" src="${esc(v)}" alt="Предпросмотр" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'muted',textContent:'Не удалось загрузить картинку'}))" />` : '';
+      $('#imgClear').hidden = !v;
+      $('#imgPrev').innerHTML = /^(https?:\/\/|\/img\/)/i.test(v) ? `<img class="img-prev" src="${esc(v)}" alt="Предпросмотр" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'muted',textContent:'Не удалось загрузить картинку'}))" />` : '';
     };
     img.addEventListener('change', () => {
       q.image = img.value.trim();
@@ -564,6 +650,14 @@
       q.image = img.value.trim();
       touch();
     });
+    const setImage = (src) => {
+      img.value = src;
+      q.image = src;
+      touch();
+      showPrev();
+    };
+    $('#imgClear').addEventListener('click', () => setImage(''));
+    $('#galleryBtn').addEventListener('click', () => openGallery(setImage));
     showPrev();
 
     el.querySelector('.qtools').addEventListener('click', (e) => {
@@ -598,6 +692,38 @@
       renderQList();
       renderQPanel();
     });
+  }
+
+  // ---------------- Галерея встроенных картинок ----------------
+
+  const GALLERY = [
+    ['clock', 'Часы'], ['fig', 'Инжир и олива'], ['pen', 'Калам и чернила'], ['iron', 'Железо и наковальня'],
+    ['sun', 'Солнце'], ['stars', 'Звезда, луна и солнце'], ['dates', 'Финики и вода'], ['trench', 'Ров у города'],
+    ['ring', 'Перстень-печать'], ['dome', 'Зелёный купол'], ['ship', 'Корабль в бурю'], ['fingerprint', 'Отпечаток пальца'],
+    ['rain', 'Дождь над сухой землёй'], ['honey', 'Мёд'], ['maunakea', 'Гора из океана'], ['sunlight', 'Свет Солнца и Земля'],
+    ['venus', 'Планета Венера'],
+  ].map(([f, name]) => ({ src: `/img/quiz/${f}.svg`, name }));
+
+  function openGallery(onPick) {
+    const back = document.createElement('div');
+    back.className = 'modal-back';
+    back.innerHTML = `
+      <div class="card modal wide bounce-in" role="dialog" aria-modal="true" aria-labelledby="gt">
+        <div class="row"><h2 id="gt" style="margin:0">Галерея картинок</h2><span class="spacer"></span><button class="btn btn-sm btn-ghost" id="gClose">Закрыть</button></div>
+        <p class="muted" style="margin:6px 0 16px">Нажмите на картинку, чтобы добавить её к вопросу</p>
+        <div class="gallery">${GALLERY.map((g) => `<button type="button" data-src="${esc(g.src)}"><img src="${esc(g.src)}" alt="" loading="lazy" /><span>${esc(g.name)}</span></button>`).join('')}</div>
+      </div>`;
+    document.body.appendChild(back);
+    const close = () => back.remove();
+    back.addEventListener('click', (e) => {
+      if (e.target === back) return close();
+      const b = e.target.closest('button[data-src]');
+      if (b) {
+        onPick(b.dataset.src);
+        close();
+      }
+    });
+    $('#gClose', back).addEventListener('click', close);
   }
 
   // ---------------- Запуск игры ----------------
@@ -787,7 +913,8 @@
           <div class="stage">
             <div class="preview fade-in"><div style="width:100%">
               <div class="row" style="justify-content:center;gap:10px"><span class="pill">Вопрос ${s.qIndex + 1} из ${s.qTotal}</span>${pointsBadge(q)}</div>
-              <div class="qtext">${esc(q.text)}</div>
+              <div class="qtext${q.image ? ' with-img' : ''}">${esc(q.text)}</div>
+              ${q.image ? `<img class="pv-img" src="${esc(q.image)}" alt="" />` : ''}
               <div class="bar" style="max-width:640px;margin:0 auto"><i id="pbar"></i></div>
             </div></div>
             <div class="controls"><button class="btn btn-ghost" id="skipBtn">Сразу к ответам ${ICONS.next}</button></div>
@@ -882,23 +1009,27 @@
         const lb = s.leaderboard || [];
         const pod = (p, n) =>
           p
-            ? `<div class="pod p${n}"><div class="who">${avatar(p.name, p.color, 'av')}<div class="nm">${esc(p.name)}</div></div><div class="block"><div class="place">${n}</div><div class="pts">${fmt(p.score)}</div></div></div>`
+            ? `<div class="pod p${n}" data-place="${n}"><div class="who">${avatar(p.name, p.color, 'av')}<div class="nm">${esc(p.name)}</div></div><div class="block"><div class="place">${n}</div><div class="pts">${fmt(p.score)}</div></div></div>`
             : `<div class="pod p${n}" style="visibility:hidden"><div class="block"></div></div>`;
         view.innerHTML = `
           <div class="stage fade-in">
             <div style="text-align:center"><h1 class="h">${esc(s.title)}</h1><p class="muted" style="margin:6px 0 0;font-weight:700">Итоги игры · ${lb.length} участн.</p></div>
-            <div class="podium">${pod(lb[1], 2)}${pod(lb[0], 1)}${pod(lb[2], 3)}</div>
+            <div class="announce" id="announce">&nbsp;</div>
+            <div class="podium"><div class="rays" id="rays"></div>${pod(lb[1], 2)}${pod(lb[0], 1)}${pod(lb[2], 3)}</div>
             <div class="controls" style="justify-content:center">
-              <button class="btn" id="allBtn">Все результаты</button>
-              <button class="btn" id="csvBtn">Скачать CSV</button>
-              <button class="btn btn-primary" id="newBtn">Новая игра</button>
+              <button class="btn btn-ghost btn-sm" id="skipAnim">Пропустить анимацию</button>
+              <div class="row later" id="finalBtns" style="gap:10px;flex-wrap:wrap;justify-content:center">
+                <button class="btn" id="allBtn">Все результаты</button>
+                <button class="btn" id="csvBtn">Скачать CSV</button>
+                <button class="btn btn-primary" id="newBtn">Новая игра</button>
+              </div>
             </div>
             <div class="card" id="allRes" hidden style="padding:8px 16px;overflow:auto">
               <table class="res"><thead><tr><th>Место</th><th>Участник</th><th>Очки</th><th>Верных ответов</th></tr></thead>
               <tbody>${lb.map((p) => `<tr><td>${p.rank}</td><td><span style="display:inline-flex;gap:10px;align-items:center">${avatar(p.name, p.color)} ${esc(p.name)}</span></td><td>${fmt(p.score)}</td><td>${p.correctCount} / ${s.qTotal}</td></tr>`).join('')}</tbody></table>
             </div>
           </div>`;
-        if (lb.length) setTimeout(() => mode === 'game' && confetti(5000), 2300);
+        stopTimer = runPodium(s, lb);
         $('#allBtn').addEventListener('click', () => {
           const t = $('#allRes');
           t.hidden = !t.hidden;
@@ -919,6 +1050,88 @@
       }
       default:
     }
+  }
+
+  /**
+   * Пьедестал: дробь на даффе → 3 место, дробь → 2 место, долгая дробь → 1 место с рыком льва.
+   * Синхронизирован с телефонами через общий сценарий podiumTimeline и elapsedMs с сервера.
+   */
+  function runPodium(s, lb) {
+    const tl = podiumTimeline(Math.min(3, lb.length));
+    const startedAt = performance.now() - (s.elapsedMs || 0);
+    const now = () => performance.now() - startedAt;
+    const timers = [];
+    const announce = $('#announce');
+    const rays = $('#rays');
+    const podEl = (n) => view.querySelector(`.pod[data-place="${n}"]`);
+    const WORDS = { 3: 'Третье место…', 2: 'Второе место…', 1: 'И победитель…' };
+    const winner = lb[0];
+    let finished = false;
+
+    const reveal = (place, withFx) => {
+      const el = podEl(place);
+      if (!el) return;
+      el.classList.remove('rolling');
+      if (!withFx) el.classList.add('instant');
+      el.classList.add('shown');
+      if (place === 1) {
+        if (rays) rays.classList.add('on');
+        announce.className = 'announce win';
+        announce.textContent = winner ? `Победитель — ${winner.name}!` : '';
+        if (withFx) confetti(6500);
+      } else {
+        announce.className = 'announce';
+        announce.textContent = `${place} место — ${lb[place - 1] ? lb[place - 1].name : ''}`;
+      }
+      if (withFx) Sound.podiumHit(place);
+    };
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      timers.forEach(clearTimeout);
+      const skip = $('#skipAnim');
+      if (skip) skip.hidden = true;
+      const btns = $('#finalBtns');
+      if (btns) btns.classList.remove('later');
+    };
+    const at = (ms, fn) => timers.push(setTimeout(fn, Math.max(0, ms - now())));
+
+    tl.steps.forEach((step) => {
+      const t = now();
+      if (t >= step.hitAt) {
+        reveal(step.place, false); // уже объявлено (например, после обновления страницы)
+        return;
+      }
+      at(step.rollAt, () => {
+        const left = step.hitAt - now();
+        announce.className = 'announce rolling';
+        announce.textContent = WORDS[step.place];
+        const el = podEl(step.place);
+        if (el) el.classList.add('rolling');
+        if (left > 300) Sound.podiumRoll(left, step.place);
+      });
+      at(step.hitAt, () => reveal(step.place, true));
+    });
+    if (!lb.length) announce.textContent = 'Участников нет';
+    if (now() >= tl.endAt) finish();
+    else at(tl.endAt, finish);
+
+    const skipBtn = $('#skipAnim');
+    if (skipBtn) {
+      skipBtn.addEventListener('click', () => {
+        Sound.podiumCancel();
+        timers.forEach(clearTimeout);
+        tl.steps.forEach((st) => {
+          const el = podEl(st.place);
+          if (el && !el.classList.contains('shown')) reveal(st.place, false);
+        });
+        finish();
+      });
+    }
+    return () => {
+      timers.forEach(clearTimeout);
+      Sound.podiumCancel();
+    };
   }
 
   /** Звуковое сопровождение смены экранов (без музыки: вода, ветер, дерево, часы, птицы) */
@@ -942,8 +1155,7 @@
         Sound.leaderboard(Math.min(5, (s.leaderboard || []).length));
         break;
       case 'final':
-        if ((s.leaderboard || []).length) Sound.podium();
-        break;
+        break; // звуки пьедестала ведёт runPodium
       default:
     }
   }

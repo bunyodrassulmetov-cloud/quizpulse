@@ -254,7 +254,146 @@
       };
     }
 
-    return { drop, tick, knock, thump, heartbeat, whoosh, splash, rain, bird, birds, stream };
+    /** Бубен-дафф: «дум» — низкий удар в центр, «тек» — звонкий удар по краю */
+    function duff(t, kind = 'dum', vol = 0.6) {
+      if (kind === 'dum') {
+        const o = ctx.createOscillator();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(98, t);
+        o.frequency.exponentialRampToValueAtTime(62, t + 0.2);
+        const g = gain(0);
+        env(g, t, 0.004, vol, 0.38);
+        o.connect(g).connect(out);
+        o.start(t);
+        o.stop(t + 0.45);
+        const o2 = ctx.createOscillator();
+        o2.type = 'sine';
+        o2.frequency.setValueAtTime(215, t);
+        o2.frequency.exponentialRampToValueAtTime(170, t + 0.12);
+        const g2 = gain(0);
+        env(g2, t, 0.003, vol * 0.35, 0.14);
+        o2.connect(g2).connect(out);
+        o2.start(t);
+        o2.stop(t + 0.2);
+        const s = noise();
+        const g3 = gain(0);
+        env(g3, t, 0.002, vol * 0.9, 0.05);
+        s.connect(filter('lowpass', 700, 0.7)).connect(g3).connect(out);
+        s.start(t, Math.random());
+        s.stop(t + 0.08);
+      } else {
+        const s = noise();
+        const g = gain(0);
+        env(g, t, 0.0015, vol * 2.6, 0.065);
+        s.connect(filter('bandpass', rnd(1900, 2500), 1.6)).connect(g).connect(out);
+        s.start(t, Math.random());
+        s.stop(t + 0.09);
+        const o = ctx.createOscillator();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(390, t);
+        o.frequency.exponentialRampToValueAtTime(320, t + 0.06);
+        const g2 = gain(0);
+        env(g2, t, 0.002, vol * 0.35, 0.07);
+        o.connect(g2).connect(out);
+        o.start(t);
+        o.stop(t + 0.1);
+      }
+    }
+
+    /** Барабанная дробь на даффе: удары учащаются и становятся громче */
+    function roll(t, dur = 2.2, vol = 0.5) {
+      let tt = t;
+      let i = 0;
+      while (tt < t + dur - 0.02) {
+        const k = (tt - t) / dur;
+        const accent = i % 6 === 0;
+        const v = vol * (0.22 + 0.78 * k * k) * (i % 2 ? 0.82 : 1);
+        duff(tt + rnd(-0.004, 0.004), accent ? 'dum' : 'tek', accent ? v * 0.8 : v);
+        tt += 1 / (8 + 18 * k);
+        i += 1;
+      }
+    }
+
+    /** Финальный удар после дроби */
+    function bigHit(t, vol = 0.9) {
+      duff(t, 'dum', vol * 0.55);
+      duff(t, 'tek', vol * 0.38);
+      thump(t, vol * 0.45, 88);
+    }
+
+    /** Рык льва (синтез: «голос» с дрожанием, хрипом и формантами) */
+    function roar(t, vol = 0.8, dur = 2.4) {
+      const bus = gain(0);
+      bus.gain.setValueAtTime(0.0001, t);
+      bus.gain.exponentialRampToValueAtTime(vol, t + 0.22);
+      bus.gain.setValueAtTime(vol, t + 0.85);
+      bus.gain.exponentialRampToValueAtTime(vol * 0.55, t + 1.5);
+      bus.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      bus.connect(out);
+
+      const o = ctx.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(88, t);
+      o.frequency.linearRampToValueAtTime(150, t + 0.32);
+      o.frequency.linearRampToValueAtTime(132, t + 1.0);
+      o.frequency.exponentialRampToValueAtTime(62, t + dur);
+      const jit = noise(brown);
+      jit.connect(filter('lowpass', 45, 0.7)).connect(gain(30)).connect(o.frequency);
+
+      const ws = ctx.createWaveShaper();
+      const curve = new Float32Array(1024);
+      for (let i = 0; i < curve.length; i++) {
+        const x = (i / (curve.length - 1)) * 2 - 1;
+        curve[i] = Math.tanh(3.2 * x);
+      }
+      ws.curve = curve;
+
+      // хрип: быстрая амплитудная модуляция
+      const growl = gain(0.55);
+      const lfo = ctx.createOscillator();
+      lfo.frequency.setValueAtTime(24, t);
+      lfo.frequency.linearRampToValueAtTime(33, t + dur);
+      lfo.connect(gain(0.45)).connect(growl.gain);
+
+      o.connect(ws).connect(growl);
+      const breath = noise();
+      breath.connect(filter('bandpass', 900, 0.6)).connect(gain(0.9)).connect(growl);
+
+      // форманты «а-о-у»
+      const f1 = filter('bandpass', 760, 2.2);
+      f1.frequency.setValueAtTime(760, t);
+      f1.frequency.linearRampToValueAtTime(480, t + dur);
+      const f2 = filter('bandpass', 1250, 2.8);
+      f2.frequency.setValueAtTime(1250, t);
+      f2.frequency.linearRampToValueAtTime(820, t + dur);
+      const f3 = filter('bandpass', 2500, 3.5);
+      growl.connect(f1).connect(gain(1.15)).connect(bus);
+      growl.connect(f2).connect(gain(0.7)).connect(bus);
+      growl.connect(f3).connect(gain(0.3)).connect(bus);
+      growl.connect(filter('lowpass', 300, 0.7)).connect(gain(0.27)).connect(bus);
+
+      // грудной низ
+      const sub = ctx.createOscillator();
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(58, t);
+      sub.frequency.exponentialRampToValueAtTime(38, t + dur);
+      sub.connect(gain(0.16)).connect(bus);
+
+      [o, jit, lfo, breath, sub].forEach((n) => {
+        n.start(t);
+        n.stop(t + dur + 0.05);
+      });
+    }
+
+    /** Яркий «звёздный» дождь из высоких капель */
+    function sparkle(t, dur = 1.6, vol = 0.4) {
+      for (let i = 0; i < 46; i++) {
+        const k = Math.random();
+        drop(t + k * dur, rnd(1600, 4200), vol * rnd(0.25, 0.6) * (1 - k * 0.6), rnd(0.03, 0.07), rnd(1.4, 2.2));
+      }
+    }
+
+    return { drop, tick, knock, thump, heartbeat, whoosh, splash, rain, bird, birds, stream, duff, roll, bigHit, roar, sparkle };
   }
 
   // ---------------- Живое воспроизведение ----------------
@@ -309,6 +448,21 @@
       ambienceStop();
       ambienceStop = null;
     }
+  }
+
+  // Отдельная шина для пьедестала: при пропуске анимации её можно мгновенно заглушить
+  let podBus = null;
+  let podEng = null;
+  function podium(fn) {
+    if (!ready()) return;
+    if (!podBus) {
+      podBus = ctx.createGain();
+      podBus.connect(master);
+      podEng = createEngine(ctx, podBus);
+    }
+    try {
+      fn(podEng, at);
+    } catch (e) { /* звук не критичен */ }
   }
 
   let lastAnswerSound = 0;
@@ -383,20 +537,37 @@
       e.whoosh(t(), 0.7, 300, 1200, 0.2);
       for (let i = 0; i < rows; i++) e.drop(t(0.3 + i * 0.09), rnd(700, 1200), 0.3, 0.09);
     }),
-    /** Пьедестал: удары при появлении 3-го, 2-го и 1-го места, затем дождь из капель и птицы */
-    podium: () => play((e, t) => {
-      e.whoosh(t(0.2), 0.9, 200, 900, 0.18);
-      e.thump(t(1.1), 0.7);
-      e.whoosh(t(0.8), 0.9, 220, 1100, 0.2);
-      e.thump(t(1.7), 0.8);
-      e.whoosh(t(1.4), 0.9, 240, 1400, 0.24);
-      e.thump(t(2.3), 0.95);
-      e.rain(t(2.3), 4, 24, 0.4);
-      e.birds(t(2.6), 5, 8, 0.14);
+    /** Пьедестал: барабанная дробь перед объявлением места */
+    podiumRoll: (ms, place) => podium((e, t) => e.roll(t(), ms / 1000, place === 1 ? 0.6 : 0.5)),
+    /** Объявление места: удар; для 1-го места — рык льва и яркий звёздный дождь */
+    podiumHit: (place) => podium((e, t) => {
+      e.bigHit(t(), place === 1 ? 1 : 0.85);
+      if (place === 1) {
+        e.roar(t(0.08), 0.85, 2.4);
+        e.sparkle(t(0.15), 1.8, 0.45);
+        e.rain(t(1.2), 3.5, 26, 0.4);
+        e.birds(t(1.8), 4, 7, 0.14);
+      } else {
+        e.sparkle(t(0.05), 0.9, 0.3);
+      }
     }),
-    celebrate: () => play((e, t) => {
-      e.rain(t(), 3, 22, 0.4);
-      e.birds(t(0.3), 3.5, 5, 0.13);
+    podiumCancel() {
+      if (!podBus || !ctx) return;
+      const bus = podBus;
+      podBus = null;
+      podEng = null;
+      const now = ctx.currentTime;
+      bus.gain.cancelScheduledValues(now);
+      bus.gain.setValueAtTime(bus.gain.value, now);
+      bus.gain.linearRampToValueAtTime(0, now + 0.12);
+      setTimeout(() => bus.disconnect(), 300);
+    },
+    /** Телефон участника: его место объявлено */
+    placeReveal: (rank) => play((e, t) => {
+      if (rank > 3) return e.splash(t(), 0.45);
+      e.bigHit(t(), 0.8);
+      e.sparkle(t(0.05), 1.2, 0.4);
+      if (rank === 1) e.roar(t(0.08), 0.7, 2.2);
     }),
     finish: () => play((e, t) => e.splash(t(), 0.45)),
   };

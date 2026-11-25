@@ -1,6 +1,6 @@
 /* Экран участника */
 (function () {
-  const { LETTERS, esc, $, toast, emit, watchConnection, countdown, fmt, confetti, BRAND_SVG, ICONS, avatar } = window.QP;
+  const { LETTERS, esc, $, toast, emit, watchConnection, countdown, fmt, confetti, BRAND_SVG, ICONS, avatar, podiumTimeline } = window.QP;
   const Sound = window.QPSound;
   $('#brandMark').innerHTML = BRAND_SVG;
 
@@ -151,10 +151,6 @@
         else Sound.timeout();
         break;
       }
-      case 'final':
-        if (s.me.rank <= 3) Sound.celebrate();
-        else Sound.finish();
-        break;
       default:
     }
   }
@@ -216,7 +212,8 @@
         app.innerHTML = `
           <div class="center fade-in">
             <div class="pill">${qNum}</div>
-            ${q && q.text ? `<div class="qtext" style="font-size:24px">${esc(q.text)}</div>` : '<h1 class="title-xl">Приготовьтесь!</h1>'}
+            ${q && q.image ? `<img class="qimg" src="${esc(q.image)}" alt="" />` : ''}
+            ${q && q.text ? `<div class="qtext" style="font-size:${q.image ? 20 : 24}px">${esc(q.text)}</div>` : '<h1 class="title-xl">Приготовьтесь!</h1>'}
             <div class="bar" style="width:100%;max-width:320px"><i id="pbar"></i></div>
           </div>`;
         stopTimer = countdown(s.remainingMs, 4000, (left, frac) => {
@@ -315,22 +312,43 @@
         break;
 
       case 'final': {
-        const rc = s.me.rank <= 3 ? `r${s.me.rank}` : 'rn';
-        app.innerHTML = `
-          <div class="center fade-in">
-            <div class="rank-badge ${rc} bounce-in">${s.me.rank}</div>
-            <h1 class="title-xl">${s.me.rank} место из ${s.me.total}</h1>
-            <p style="margin:0;font-size:18px"><b>${fmt(s.me.score)}</b> очков</p>
-            <p class="muted" style="margin:0">Правильных ответов: ${s.result ? s.result.correctCount : 0} из ${s.qTotal}</p>
-            <button class="btn btn-primary" id="againBtn" style="margin-top:18px">Войти в другую игру</button>
-          </div>`;
-        if (s.me.rank <= 3) confetti();
-        $('#againBtn').addEventListener('click', () => {
-          saveSession({ lastName: s.me.name });
-          state = null;
-          history.replaceState(null, '', '/');
-          renderPin();
-        });
+        // Место участника объявляется синхронно с пьедесталом на экране ведущего
+        const tl = podiumTimeline(Math.min(3, s.me.total));
+        const step = tl.steps.find((x) => x.place === s.me.rank);
+        const revealAt = step ? step.hitAt : tl.endAt - 1400;
+        const wait = revealAt - (s.elapsedMs || 0);
+        const showResult = (late) => {
+          const rc = s.me.rank <= 3 ? `r${s.me.rank}` : 'rn';
+          app.innerHTML = `
+            <div class="center fade-in">
+              <div class="rank-badge ${rc} bounce-in">${s.me.rank}</div>
+              <h1 class="title-xl">${s.me.rank === 1 ? 'Вы победили!' : `${s.me.rank} место из ${s.me.total}`}</h1>
+              <p style="margin:0;font-size:18px"><b>${fmt(s.me.score)}</b> очков</p>
+              <p class="muted" style="margin:0">Правильных ответов: ${s.result ? s.result.correctCount : 0} из ${s.qTotal}</p>
+              <button class="btn btn-primary" id="againBtn" style="margin-top:18px">Войти в другую игру</button>
+            </div>`;
+          if (!late) {
+            Sound.placeReveal(s.me.rank);
+            if (navigator.vibrate) navigator.vibrate(s.me.rank <= 3 ? [60, 80, 60, 80, 120] : 80);
+            if (s.me.rank <= 3) confetti(s.me.rank === 1 ? 6000 : 4000);
+          }
+          $('#againBtn').addEventListener('click', () => {
+            saveSession({ lastName: s.me.name });
+            state = null;
+            history.replaceState(null, '', '/');
+            renderPin();
+          });
+        };
+        if (wait > 0) {
+          app.innerHTML = `
+            <div class="center fade-in">
+              <div class="drum-wait"><span></span><span></span><span></span></div>
+              <h1 class="title-xl">Объявляем победителей…</h1>
+              <p class="muted" style="margin:0">Смотрите на экран ведущего</p>
+            </div>`;
+          const tm = setTimeout(() => showResult(false), wait);
+          stopTimer = () => clearTimeout(tm);
+        } else showResult(true);
         break;
       }
       default:

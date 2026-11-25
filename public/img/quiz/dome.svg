@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400">
+<defs>
+<clipPath id="r"><rect width="640" height="400" rx="28"/></clipPath>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe6ff"/><stop offset="1" stop-color="#fff5e0"/></linearGradient><linearGradient id="green" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3fbf7f"/><stop offset="1" stop-color="#1d7a4c"/></linearGradient><linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7ecd8"/><stop offset="1" stop-color="#e2cfae"/></linearGradient>
+</defs>
+<g clip-path="url(#r)">
+<rect width="640" height="400" fill="url(#bg)"/>
+<circle cx="540" cy="80" r="44" fill="#fff4c2"/>
+<rect x="60" y="120" width="44" height="200" fill="url(#wall)"/><rect x="54" y="150" width="56" height="10" fill="#d8c29b"/><rect x="54" y="230" width="56" height="10" fill="#d8c29b"/>
+<path d="M60 120 L82 70 L104 120 Z" fill="#e2cfae"/><circle cx="82" cy="64" r="6" fill="#d4a84a"/>
+<rect x="530" y="130" width="44" height="190" fill="url(#wall)"/><rect x="524" y="160" width="56" height="10" fill="#d8c29b"/><rect x="524" y="240" width="56" height="10" fill="#d8c29b"/>
+<path d="M530 130 L552 82 L574 130 Z" fill="#e2cfae"/><circle cx="552" cy="76" r="6" fill="#d4a84a"/>
+<rect x="130" y="230" width="380" height="100" fill="url(#wall)"/>
+<rect x="250" y="200" width="140" height="40" fill="#efe0c3"/>
+<path d="M248 205 Q248 80 320 70 Q392 80 392 205 Z" fill="url(#green)"/>
+<path d="M275 200 Q272 110 318 82" stroke="#8ae0b3" stroke-width="7" fill="none" opacity=".55" stroke-linecap="round"/>
+<rect x="317" y="40" width="6" height="34" fill="#d4a84a"/><circle cx="320" cy="40" r="9" fill="#d4a84a"/>
+<g fill="#b8975f"><path d="M150 330 v-45 q14 -20 28 0 v45 z"/><path d="M198 330 v-45 q14 -20 28 0 v45 z"/><path d="M246 330 v-45 q14 -20 28 0 v45 z"/><path d="M294 330 v-45 q14 -20 28 0 v45 z"/><path d="M342 330 v-45 q14 -20 28 0 v45 z"/><path d="M390 330 v-45 q14 -20 28 0 v45 z"/><path d="M438 330 v-45 q14 -20 28 0 v45 z"/><path d="M486 330 v-45 q14 -20 28 0 v45 z"/></g>
+<rect x="0" y="328" width="640" height="72" fill="#e9d6b0"/>
+</g>
+</svg>

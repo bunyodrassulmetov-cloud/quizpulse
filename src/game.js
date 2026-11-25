@@ -65,7 +65,8 @@ function sanitizeQuiz(raw) {
     const timeLimit = ALLOWED_TIMES.includes(Number(q.timeLimit)) ? Number(q.timeLimit) : 20;
     const points = [0, 1, 2].includes(Number(q.points)) ? Number(q.points) : 1;
     let image = clampStr(q.image, 500);
-    if (image && !/^https?:\/\//i.test(image)) image = '';
+    // внешняя ссылка или встроенная картинка из /img/
+    if (image && !/^https?:\/\//i.test(image) && !/^\/img\/[\w/-]+\.(svg|png|jpe?g|webp)$/i.test(image)) image = '';
     return { text, type, answers: kept, correct, timeLimit, points, image };
   });
 
@@ -87,6 +88,7 @@ class Game {
     this.hostSocketId = null;
     this.players = new Map(); // playerId -> player
     this.phase = PHASE.LOBBY;
+    this.phaseAt = Date.now();
     this.qIndex = -1;
     this.locked = false;
     this.timer = null;
@@ -215,6 +217,7 @@ class Game {
     this.answers.clear();
     this.lastReveal = null;
     this.phase = PHASE.PREVIEW;
+    this.phaseAt = Date.now();
     this.phaseEndsAt = Date.now() + PREVIEW_MS;
     this.timer = setTimeout(() => this.openQuestion(), PREVIEW_MS);
     this.broadcast();
@@ -226,6 +229,7 @@ class Game {
     this.clearTimer();
     const q = this.question;
     this.phase = PHASE.QUESTION;
+    this.phaseAt = Date.now();
     this.questionStartedAt = Date.now();
     this.phaseEndsAt = this.questionStartedAt + q.timeLimit * 1000;
     this.timer = setTimeout(() => this.reveal(), q.timeLimit * 1000 + ANSWER_GRACE_MS);
@@ -289,6 +293,7 @@ class Game {
     }
     this.lastReveal = { counts, correct: q.correct.slice(), answered: this.answers.size };
     this.phase = PHASE.REVEAL;
+    this.phaseAt = Date.now();
     this.phaseEndsAt = 0;
     this.broadcast();
   }
@@ -296,6 +301,7 @@ class Game {
   showLeaderboard() {
     this.clearTimer();
     this.phase = PHASE.LEADERBOARD;
+    this.phaseAt = Date.now();
     this.broadcast();
   }
 
@@ -303,6 +309,7 @@ class Game {
     this.clearTimer();
     if (this.phase === PHASE.QUESTION) this.reveal();
     this.phase = PHASE.FINAL;
+    this.phaseAt = Date.now();
     this.phaseEndsAt = 0;
     this.broadcast();
   }
@@ -341,6 +348,7 @@ class Game {
       qIndex: this.qIndex,
       qTotal: this.questions.length,
       remainingMs: this.phaseEndsAt ? Math.max(0, this.phaseEndsAt - Date.now()) : 0,
+      elapsedMs: Date.now() - this.phaseAt, // сколько прошло с начала этапа (для синхронной анимации пьедестала)
     };
   }
 
