@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b1020" />
-  <title>QuizPulse — войти в игру</title>
+  <title>QuizPulse</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet" />
@@ -15,7 +15,9 @@
   <style>
     body { min-height: 100dvh; }
     .shell { min-height: 100dvh; display: flex; flex-direction: column; }
-    .top { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; }
+    .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 16px; }
+    .top .pill { white-space: nowrap; }
+    @media (max-width: 440px) { .top .brand-name { display: none; } }
     .main { flex: 1; display: flex; flex-direction: column; padding: 8px 16px 16px; width: 100%; max-width: 560px; margin: 0 auto; }
     .center { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 14px; }
     .join-card { width: 100%; padding: 26px 22px; display: grid; gap: 14px; }
@@ -63,13 +65,14 @@
   <div class="shell">
     <div class="top">
       <a class="brand" href="/"><span class="brand-mark" id="brandMark"></span><span class="brand-name">QuizPulse</span></a>
-      <span class="pill" id="pinPill" hidden></span>
+      <div class="row" style="gap:8px"><span class="pill" id="pinPill" hidden></span><div id="langSw"></div></div>
     </div>
     <div class="main" id="app"></div>
     <div class="footer" id="footer" hidden></div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/i18n.js"></script>
   <script src="/common.js"></script>
   <script src="/sounds.js"></script>
   <script src="/play.js"></script>

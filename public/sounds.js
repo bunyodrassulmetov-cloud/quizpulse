@@ -420,8 +420,8 @@
   } catch (e) { /* нет доступа к хранилищу */ }
 
   // Настоящие записи с Wikimedia Commons (свободные лицензии, см. /credits):
-  // барабанная дробь и удар — CC0, рык льва — общественное достояние.
-  const SAMPLE_URLS = { roll: '/audio/drumroll.mp3', hit: '/audio/drum-hit.mp3', lion: '/audio/lion-roar.mp3' };
+  // барабанная дробь и удар — CC0, рык льва — CC BY 4.0, аплодисменты и салют — общественное достояние.
+  const SAMPLE_URLS = { roll: '/audio/drumroll.mp3', hit: '/audio/drum-hit.mp3', lion: '/audio/lion-roar.mp3', cheer: '/audio/victory-cheer.mp3' };
   const sampleData = {};
   const samples = {};
   function preloadSamples() {
@@ -588,10 +588,18 @@
       else e.sample(b, t(), { offset: b.duration - dur, gain: level, fadeIn: 0.2 });
     }),
     /** Объявление места: удар; для 1-го места — рык льва и яркий звёздный дождь */
-    podiumHit: (place) => podium((e, t) => {
+    /** kind: 'lion' — рык льва, 'cheer' — аплодисменты и салют */
+    podiumHit: (place, kind) => podium((e, t) => {
       if (samples.hit) e.sample(samples.hit, t(), { gain: place === 1 ? 1 : 0.85 });
       else e.bigHit(t(), place === 1 ? 1 : 0.85);
-      if (place === 1) {
+      if (place !== 1) return;
+      if (kind === 'cheer') {
+        if (samples.cheer) e.sample(samples.cheer, t(0.1), { gain: 1 });
+        else {
+          e.sparkle(t(0.1), 2, 0.45);
+          e.rain(t(0.6), 3.5, 30, 0.4);
+        }
+      } else {
         if (samples.lion) e.sample(samples.lion, t(0.15), { gain: 1 });
         else e.roar(t(0.08), 0.85, 2.4);
         e.rain(t(3.6), 3.5, 24, 0.32);
@@ -610,14 +618,16 @@
       setTimeout(() => bus.disconnect(), 300);
     },
     /** Телефон участника: его место объявлено */
-    placeReveal: (rank) => play((e, t) => {
+    placeReveal: (rank, kind) => play((e, t) => {
       if (rank > 3) return e.splash(t(), 0.45);
       if (samples.hit) e.sample(samples.hit, t(), { gain: 0.85 });
       else e.bigHit(t(), 0.8);
-      if (rank === 1) {
-        if (samples.lion) e.sample(samples.lion, t(0.15), { gain: 0.9 });
-        else e.roar(t(0.08), 0.7, 2.2);
-      } else e.sparkle(t(0.05), 1.2, 0.35);
+      if (rank !== 1) return e.sparkle(t(0.05), 1.2, 0.35);
+      if (kind === 'cheer') {
+        if (samples.cheer) e.sample(samples.cheer, t(0.1), { gain: 0.9 });
+        else e.sparkle(t(0.1), 2, 0.4);
+      } else if (samples.lion) e.sample(samples.lion, t(0.15), { gain: 0.9 });
+      else e.roar(t(0.08), 0.7, 2.2);
     }),
     finish: () => play((e, t) => e.splash(t(), 0.45)),
   };

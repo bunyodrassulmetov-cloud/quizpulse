@@ -1,6 +1,8 @@
 /* Экран ведущего: библиотека викторин, редактор и проведение игры */
 (function () {
-  const { LETTERS, esc, $, $$, toast, emit, watchConnection, countdown, ringSVG, updateRing, confetti, animateNumber, fmt, BRAND_SVG, ICONS, avatar, podiumTimeline } = window.QP;
+  const { LETTERS, esc, $, $$, toast, emit, watchConnection, countdown, ringSVG, updateRing, confetti, animateNumber, fmt, BRAND_SVG, ICONS, avatar, podiumTimeline, errText, answerText } = window.QP;
+  const I18N = window.QPI18N;
+  const tr = I18N.t;
   const Sound = window.QPSound;
   $('#brandMark').innerHTML = BRAND_SVG;
 
@@ -41,6 +43,7 @@
   watchConnection(socket);
 
   let mode = 'boot'; // boot | library | editor | game
+  let quietRender = false;
   let game = null;
   let renderedKey = '';
   let stopTimer = null;
@@ -74,7 +77,7 @@
         points: [0, 1, 2].includes(Number(x.points)) ? Number(x.points) : 1,
       };
     });
-    return { id: q.id || uid(), title: String(q.title || 'Без названия').slice(0, 120), questions, updatedAt: q.updatedAt || Date.now() };
+    return { id: q.id || uid(), title: String(q.title || tr('untitled')).slice(0, 120), questions, updatedAt: q.updatedAt || Date.now() };
   }
 
   function demoQuiz() {
@@ -197,9 +200,30 @@
     });
   }
 
+  function islamPhotoQuiz() {
+    return normalizeQuiz({
+      id: 'islam-photo-1',
+      title: 'Ислам в фотографиях',
+      questions: [
+        { image: IMG('kaaba'), text: 'Как называется это священное здание, к которому мусульмане обращаются в молитве?', answers: ['Кааба', 'Купол Скалы', 'Мечеть Куба', 'Масджид ан-Набави'], correct: [0], timeLimit: 20 },
+        { image: IMG('domerock'), text: 'Как называется это здание с золотым куполом в Иерусалиме?', answers: ['Мечеть аль-Акса', 'Купол Скалы', 'Голубая мечеть', 'Мечеть Куба'], correct: [1], timeLimit: 20 },
+        { image: IMG('spiderweb'), text: 'Какая сура названа в честь того, кто сплёл это?', answers: ['Ан-Намль', 'Аль-Анкабут', 'Ан-Нахль', 'Аль-Филь'], correct: [1], timeLimit: 20 },
+        { image: IMG('elephant'), text: 'Какая сура названа в честь этого животного?', answers: ['Аль-Бакара', 'Аль-Анам', 'Аль-Филь', 'Аль-Адият'], correct: [2], timeLimit: 20 },
+        { image: IMG('nour'), text: 'В пещере на этой горе Пророку ﷺ было ниспослано первое откровение. Как называется гора?', answers: ['Ухуд', 'Джабаль ан-Нур', 'Арафат', 'Синай'], correct: [1], timeLimit: 20 },
+        { image: IMG('bee'), text: 'Какая сура названа в честь этого насекомого?', answers: ['Ан-Нахль', 'Ан-Намль', 'Аль-Анкабут', 'Аль-Хадид'], correct: [0], timeLimit: 20 },
+        { image: IMG('arafat'), text: 'Здесь паломники стоят в главный день хаджа. Как называется это место?', answers: ['Мина', 'Муздалифа', 'Арафат', 'Сафа'], correct: [2], timeLimit: 20 },
+        { image: IMG('zamzam'), text: 'Как называется благословенный источник воды в Мекке?', answers: ['Замзам', 'Каусар', 'Сальсабиль', 'Тасним'], correct: [0], timeLimit: 20 },
+        { image: IMG('quba'), text: 'Это первая мечеть, построенная Пророком ﷺ. Как она называется?', answers: ['Масджид аль-Харам', 'Мечеть Куба', 'Масджид аль-Кыблатайн', 'Мечеть аль-Акса'], correct: [1], timeLimit: 20 },
+        { image: IMG('miswak'), text: 'Этой палочкой Пророк ﷺ чистил зубы. Как она называется?', answers: ['Тасбих', 'Мисвак', 'Калам', 'Аса'], correct: [1], timeLimit: 20 },
+        { image: IMG('cow'), text: 'Самая длинная сура Корана названа в честь этого животного. Как она называется?', answers: ['Аль-Бакара', 'Аль-Анам', 'Аль-Филь', 'Ан-Нахль'], correct: [0], timeLimit: 20 },
+        { image: IMG('stars'), text: 'Появление молодого месяца (хиляля) отмечает начало…', answers: ['нового месяца исламского календаря', 'пятничной молитвы', 'хаджа', 'нового солнечного года'], correct: [0], timeLimit: 20, points: 2 },
+      ],
+    });
+  }
+
   // Встроенные викторины: добавляются один раз (если ведущий удалил — больше не появятся).
   // Новые встают в начало списка, поэтому порядок — от нижней к верхней.
-  const BUILTIN = [demoQuiz, islamQuiz, worldQuiz, quranQuiz, tawhidQuiz, siraQuiz];
+  const BUILTIN = [demoQuiz, islamQuiz, worldQuiz, quranQuiz, tawhidQuiz, siraQuiz, islamPhotoQuiz];
   const STORE_SEEDED = 'qp-seeded';
 
   function loadQuizzes() {
@@ -253,14 +277,14 @@
 
   function validate(quiz) {
     const errors = [];
-    if (!quiz.title.trim()) errors.push({ q: -1, msg: 'Укажите название викторины' });
-    if (!quiz.questions.length) errors.push({ q: -1, msg: 'Добавьте хотя бы один вопрос' });
+    if (!quiz.title.trim()) errors.push({ q: -1, msg: tr('v.title') });
+    if (!quiz.questions.length) errors.push({ q: -1, msg: tr('v.addQ') });
     quiz.questions.forEach((q, i) => {
       const n = i + 1;
-      if (!q.text.trim()) errors.push({ q: i, msg: `Вопрос ${n}: введите текст` });
+      if (!q.text.trim()) errors.push({ q: i, msg: tr('v.text', { n }) });
       const filled = q.answers.map((a, idx) => (a.trim() ? idx : -1)).filter((x) => x >= 0);
-      if (filled.length < 2) errors.push({ q: i, msg: `Вопрос ${n}: нужно минимум 2 варианта` });
-      if (!q.correct.some((c) => filled.includes(c))) errors.push({ q: i, msg: `Вопрос ${n}: отметьте правильный ответ среди заполненных` });
+      if (filled.length < 2) errors.push({ q: i, msg: tr('v.min2', { n }) });
+      if (!q.correct.some((c) => filled.includes(c))) errors.push({ q: i, msg: tr('v.correct', { n }) });
     });
     return errors;
   }
@@ -294,12 +318,12 @@
     try {
       const quiz = normalizeQuiz(JSON.parse(await f.text()));
       quiz.id = uid();
-      if (!quiz.questions.length) throw new Error('В файле нет вопросов');
+      if (!quiz.questions.length) throw new Error(tr('h.importNoQ'));
       upsertQuiz(quiz);
-      toast(`Импортировано: «${quiz.title}»`);
+      toast(tr('h.imported', { title: quiz.title }));
       renderLibrary();
     } catch (e) {
-      toast('Не удалось импортировать: ' + e.message, true);
+      toast(tr('h.importFail') + e.message, true);
     }
   });
 
@@ -338,39 +362,38 @@
     if (stopTimer) stopTimer();
     $('#topbar').hidden = false;
     setTop('', [
-      { label: 'Импорт JSON', onClick: () => importFile.click() },
-      { label: '+ Создать викторину', cls: 'btn-primary', onClick: () => openEditor(normalizeQuiz({ title: '', questions: [blankQuestion()] }), true) },
+      { label: tr('h.importJson'), onClick: () => importFile.click() },
+      { label: tr('h.create'), cls: 'btn-primary', onClick: () => openEditor(normalizeQuiz({ title: '', questions: [blankQuestion()] }), true) },
     ]);
     const list = loadQuizzes();
-    const plural = (n) => (n % 10 === 1 && n % 100 !== 11 ? 'вопрос' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'вопроса' : 'вопросов');
     view.innerHTML = `
       <div class="page fade-in">
         <div class="lib-head">
           <div>
-            <h1 class="h">Мои викторины</h1>
-            <p class="muted" style="margin:8px 0 0">Создайте вопросы и запустите игру — участники подключатся по QR-коду со своих телефонов.</p>
+            <h1 class="h">${tr('h.myQuizzes')}</h1>
+            <p class="muted" style="margin:8px 0 0">${tr('h.libHint')}</p>
           </div>
         </div>
         ${list.length ? `<div class="quiz-grid">
           ${list.map((q) => `
             <article class="card quiz-card" data-id="${esc(q.id)}">
-              <div class="meta">${q.questions.length} ${plural(q.questions.length)}${q.questions.some((x) => x.image) ? ` · ${q.questions.filter((x) => x.image).length} с картинками` : ''}</div>
-              <h3>${esc(q.title || 'Без названия')}</h3>
+              <div class="meta">${tr('nQuestions', { n: q.questions.length })}${q.questions.some((x) => x.image) ? ` · ${tr('h.withImages', { n: q.questions.filter((x) => x.image).length })}` : ''}</div>
+              <h3>${esc(q.title || tr('untitled'))}</h3>
               <div class="actions">
-                <button class="btn btn-primary btn-sm" data-act="play">${ICONS.play} Запустить</button>
-                <button class="btn btn-sm" data-act="edit">Изменить</button>
-                <button class="btn btn-sm btn-ghost" data-act="copy" title="Сделать копию">Копия</button>
-                <button class="btn btn-sm btn-ghost" data-act="export" title="Скачать JSON">JSON</button>
-                <button class="btn btn-sm btn-ghost btn-danger" data-act="del" title="Удалить">Удалить</button>
+                <button class="btn btn-primary btn-sm" data-act="play">${ICONS.play} ${tr('h.play')}</button>
+                <button class="btn btn-sm" data-act="edit">${tr('h.edit')}</button>
+                <button class="btn btn-sm btn-ghost" data-act="copy" title="${tr('h.copyTitle')}">${tr('h.copy')}</button>
+                <button class="btn btn-sm btn-ghost" data-act="export" title="${tr('h.downloadJson')}">JSON</button>
+                <button class="btn btn-sm btn-ghost btn-danger" data-act="del" title="${tr('h.delete')}">${tr('h.delete')}</button>
               </div>
             </article>`).join('')}
-        </div>` : `<div class="card empty"><h3 style="margin-top:0">Пока нет викторин</h3><p class="muted">Создайте первую или импортируйте JSON.</p></div>`}
+        </div>` : `<div class="card empty"><h3 style="margin-top:0">${tr('h.empty')}</h3><p class="muted">${tr('h.emptyHint')}</p></div>`}
         <section class="card how">
-          <div class="step"><b>1</b><div style="font-weight:800">Подготовьте вопросы</div><p>До 4 вариантов ответа, верно/неверно, таймер, двойные очки, картинки.</p></div>
-          <div class="step"><b>2</b><div style="font-weight:800">Откройте комнату</div><p>На экране появится PIN и QR-код. Выведите его на проектор или в демонстрацию экрана.</p></div>
-          <div class="step"><b>3</b><div style="font-weight:800">Играйте вживую</div><p>Участники отвечают с телефонов, очки за скорость, таблица лидеров и пьедестал.</p></div>
+          <div class="step"><b>1</b><div style="font-weight:800">${tr('h.step1')}</div><p>${tr('h.step1d')}</p></div>
+          <div class="step"><b>2</b><div style="font-weight:800">${tr('h.step2')}</div><p>${tr('h.step2d')}</p></div>
+          <div class="step"><b>3</b><div style="font-weight:800">${tr('h.step3')}</div><p>${tr('h.step3d')}</p></div>
         </section>
-        <p class="muted" style="margin:18px 0 0;font-size:13px">Фото и записи звуков — Wikimedia Commons, свободные лицензии. <a href="/credits" style="color:var(--accent)">Авторы и лицензии</a></p>
+        <p class="muted" style="margin:18px 0 0;font-size:13px">${tr('h.credits')} <a href="/credits" style="color:var(--accent)">${tr('h.creditsLink')}</a></p>
       </div>`;
 
     view.querySelectorAll('.quiz-card').forEach((card) => {
@@ -395,7 +418,7 @@
           case 'copy': {
             const c = JSON.parse(JSON.stringify(quiz));
             c.id = uid();
-            c.title = `${quiz.title} (копия)`;
+            c.title = `${quiz.title} ${tr('h.copySuffix')}`;
             upsertQuiz(c);
             renderLibrary();
             break;
@@ -404,7 +427,7 @@
             exportQuiz(quiz);
             break;
           case 'del':
-            if (confirm(`Удалить викторину «${quiz.title}»?`)) {
+            if (confirm(tr('h.confirmDelQuiz', { title: quiz.title }))) {
               saveQuizzes(quizzes.filter((q) => q.id !== quiz.id));
               renderLibrary();
             }
@@ -432,29 +455,29 @@
   }
 
   function leaveEditor() {
-    if (dirty && !confirm('Есть несохранённые изменения. Выйти без сохранения?')) return;
+    if (dirty && !confirm(tr('h.unsaved'))) return;
     renderLibrary();
   }
 
   function saveDraft(silent) {
-    draft.title = draft.title.trim() || 'Без названия';
+    draft.title = draft.title.trim() || tr('untitled');
     upsertQuiz(draft);
     dirty = false;
     const errs = validate(draft);
     errorSet = new Set(errs.map((e) => e.q).filter((q) => q >= 0));
     renderQList();
-    if (!silent) toast(errs.length ? `Сохранено. Не готово к запуску: ${errs[0].msg}` : 'Сохранено', !!errs.length);
+    if (!silent) toast(errs.length ? tr('h.savedNotReady', { msg: errs[0].msg }) : tr('h.saved'), !!errs.length);
     return errs;
   }
 
   function renderEditor() {
     mode = 'editor';
     setTop('', [
-      { label: '← К списку', cls: 'btn-ghost', onClick: leaveEditor },
-      { label: 'JSON', cls: 'btn-ghost', title: 'Скачать JSON', onClick: () => exportQuiz(draft) },
-      { label: 'Сохранить', onClick: () => saveDraft(false) },
+      { label: tr('h.back'), cls: 'btn-ghost', onClick: leaveEditor },
+      { label: 'JSON', cls: 'btn-ghost', title: tr('h.downloadJson'), onClick: () => exportQuiz(draft) },
+      { label: tr('h.save'), onClick: () => saveDraft(false) },
       {
-        label: 'Запустить',
+        label: tr('h.play'),
         icon: ICONS.play,
         cls: 'btn-primary',
         onClick: () => {
@@ -475,8 +498,8 @@
     view.innerHTML = `
       <div class="page fade-in">
         <div style="margin-bottom:18px">
-          <label class="label" for="quizTitle">Название викторины</label>
-          <input class="input" id="quizTitle" maxlength="120" placeholder="Например: Итоги квартала" value="${esc(draft.title)}" style="font-size:22px;font-weight:800" />
+          <label class="label" for="quizTitle">${tr('h.quizName')}</label>
+          <input class="input" id="quizTitle" maxlength="120" placeholder="${tr('h.quizNamePh')}" value="${esc(draft.title)}" style="font-size:22px;font-weight:800" />
         </div>
         <div class="ed">
           <aside class="card qlist" id="qlist"></aside>
@@ -500,12 +523,12 @@
       ${draft.questions.map((q, i) => `
         <button class="qitem ${i === sel ? 'on' : ''} ${errorSet.has(i) ? 'err' : ''}" data-i="${i}">
           <span class="n">${i + 1}</span>
-          <span class="t ${q.text ? '' : 'ph'}">${esc(q.text || 'Новый вопрос')}</span>
-          <span class="muted" style="font-size:12px">${q.type === 'truefalse' ? 'В/Н' : q.timeLimit + 'с'}</span>
+          <span class="t ${q.text ? '' : 'ph'}">${esc(q.text || tr('h.newQ'))}</span>
+          <span class="muted" style="font-size:12px">${q.type === 'truefalse' ? tr('h.tfShort') : tr('h.secShort', { n: q.timeLimit })}</span>
         </button>`).join('')}
       <div style="display:grid;gap:8px;margin-top:6px">
-        <button class="btn btn-sm" id="addQ">+ Вопрос с вариантами</button>
-        <button class="btn btn-sm btn-ghost" id="addTF">+ Верно / Неверно</button>
+        <button class="btn btn-sm" id="addQ">${tr('h.addQ')}</button>
+        <button class="btn btn-sm btn-ghost" id="addTF">${tr('h.addTF')}</button>
       </div>`;
     el.querySelectorAll('.qitem').forEach((b) =>
       b.addEventListener('click', () => {
@@ -531,7 +554,7 @@
     const item = $(`#qlist .qitem[data-i="${sel}"] .t`);
     const q = draft.questions[sel];
     if (item) {
-      item.textContent = q.text || 'Новый вопрос';
+      item.textContent = q.text || tr('h.newQ');
       item.classList.toggle('ph', !q.text);
     }
   }
@@ -543,57 +566,57 @@
     const tf = q.type === 'truefalse';
     el.innerHTML = `
       <div class="row" style="flex-wrap:wrap">
-        <div class="pill">Вопрос ${sel + 1} из ${draft.questions.length}</div>
+        <div class="pill">${tr('qNum', { n: sel + 1, total: draft.questions.length })}</div>
         <span class="spacer"></span>
         <div class="qtools">
-          <button class="btn btn-sm btn-ghost" data-tool="up" ${sel === 0 ? 'disabled' : ''} title="Выше">↑</button>
-          <button class="btn btn-sm btn-ghost" data-tool="down" ${sel === draft.questions.length - 1 ? 'disabled' : ''} title="Ниже">↓</button>
-          <button class="btn btn-sm btn-ghost" data-tool="dup">Дублировать</button>
-          <button class="btn btn-sm btn-ghost btn-danger" data-tool="del" ${draft.questions.length === 1 ? 'disabled' : ''}>Удалить</button>
+          <button class="btn btn-sm btn-ghost" data-tool="up" ${sel === 0 ? 'disabled' : ''} title="${tr('h.up')}">↑</button>
+          <button class="btn btn-sm btn-ghost" data-tool="down" ${sel === draft.questions.length - 1 ? 'disabled' : ''} title="${tr('h.down')}">↓</button>
+          <button class="btn btn-sm btn-ghost" data-tool="dup">${tr('h.dup')}</button>
+          <button class="btn btn-sm btn-ghost btn-danger" data-tool="del" ${draft.questions.length === 1 ? 'disabled' : ''}>${tr('h.delete')}</button>
         </div>
       </div>
       <div>
-        <label class="label" for="qText">Текст вопроса</label>
-        <textarea class="textarea" id="qText" maxlength="300" placeholder="Введите вопрос…" style="font-size:20px;font-weight:700">${esc(q.text)}</textarea>
+        <label class="label" for="qText">${tr('h.qText')}</label>
+        <textarea class="textarea" id="qText" maxlength="300" placeholder="${tr('h.qTextPh')}" style="font-size:20px;font-weight:700">${esc(q.text)}</textarea>
       </div>
       <div class="opts">
         <div>
-          <label class="label" for="qType">Тип</label>
+          <label class="label" for="qType">${tr('h.type')}</label>
           <select class="select" id="qType">
-            <option value="quiz" ${!tf ? 'selected' : ''}>Варианты ответа</option>
-            <option value="truefalse" ${tf ? 'selected' : ''}>Верно / Неверно</option>
+            <option value="quiz" ${!tf ? 'selected' : ''}>${tr('h.typeQuiz')}</option>
+            <option value="truefalse" ${tf ? 'selected' : ''}>${tr('h.typeTF')}</option>
           </select>
         </div>
         <div>
-          <label class="label" for="qTime">Время на ответ</label>
-          <select class="select" id="qTime">${TIMES.map((t) => `<option value="${t}" ${t === q.timeLimit ? 'selected' : ''}>${t} сек</option>`).join('')}</select>
+          <label class="label" for="qTime">${tr('h.time')}</label>
+          <select class="select" id="qTime">${TIMES.map((sec) => `<option value="${sec}" ${sec === q.timeLimit ? 'selected' : ''}>${tr('h.sec', { n: sec })}</option>`).join('')}</select>
         </div>
         <div>
-          <label class="label" for="qPoints">Очки</label>
+          <label class="label" for="qPoints">${tr('h.points')}</label>
           <select class="select" id="qPoints">
-            <option value="1" ${q.points === 1 ? 'selected' : ''}>Стандартные</option>
-            <option value="2" ${q.points === 2 ? 'selected' : ''}>Двойные ×2</option>
-            <option value="0" ${q.points === 0 ? 'selected' : ''}>Без очков</option>
+            <option value="1" ${q.points === 1 ? 'selected' : ''}>${tr('h.ptsStd')}</option>
+            <option value="2" ${q.points === 2 ? 'selected' : ''}>${tr('h.ptsDouble')}</option>
+            <option value="0" ${q.points === 0 ? 'selected' : ''}>${tr('h.ptsNone')}</option>
           </select>
         </div>
       </div>
       <div>
-        <label class="label">Варианты ответа ${tf ? '' : '<span style="font-weight:500">— нажмите на кружок, чтобы отметить правильный (можно несколько)</span>'}</label>
+        <label class="label">${tr('h.answers')} ${tf ? '' : `<span style="font-weight:500">${tr('h.answersHint')}</span>`}</label>
         <div class="ans-edit" id="ansEdit">
           ${q.answers.map((a, i) => `
             <div class="ans a${i}">
               <span class="letter">${LETTERS[i]}</span>
-              <input data-ai="${i}" maxlength="120" value="${esc(a)}" placeholder="${i < 2 ? 'Вариант ответа' : 'Необязательно'}" ${tf ? 'readonly' : ''} />
-              <button class="ok-toggle ${q.correct.includes(i) ? 'on' : ''}" data-ci="${i}" title="Правильный ответ" aria-pressed="${q.correct.includes(i)}">✓</button>
+              <input data-ai="${i}" maxlength="120" value="${esc(tf ? answerText(q, i) : a)}" placeholder="${i < 2 ? tr('h.ansPh') : tr('h.optional')}" ${tf ? 'readonly' : ''} />
+              <button class="ok-toggle ${q.correct.includes(i) ? 'on' : ''}" data-ci="${i}" title="${tr('h.correctAns')}" aria-pressed="${q.correct.includes(i)}">✓</button>
             </div>`).join('')}
         </div>
       </div>
       <div>
-        <label class="label" for="qImg">Картинка (необязательно) — из галереи или ссылка https://…</label>
+        <label class="label" for="qImg">${tr('h.image')}</label>
         <div class="row" style="flex-wrap:wrap;gap:8px">
           <input class="input" id="qImg" maxlength="500" placeholder="https://example.com/picture.jpg" value="${esc(q.image)}" style="flex:1;min-width:220px" />
-          <button class="btn btn-sm" id="galleryBtn" type="button">Выбрать из галереи</button>
-          <button class="btn btn-sm btn-ghost" id="imgClear" type="button" ${q.image ? '' : 'hidden'}>Убрать</button>
+          <button class="btn btn-sm" id="galleryBtn" type="button">${tr('h.fromGallery')}</button>
+          <button class="btn btn-sm btn-ghost" id="imgClear" type="button" ${q.image ? '' : 'hidden'}>${tr('h.remove')}</button>
         </div>
         <div id="imgPrev" style="margin-top:10px"></div>
       </div>`;
@@ -650,7 +673,7 @@
     const showPrev = () => {
       const v = img.value.trim();
       $('#imgClear').hidden = !v;
-      $('#imgPrev').innerHTML = /^(https?:\/\/|\/img\/)/i.test(v) ? `<img class="img-prev" src="${esc(v)}" alt="Предпросмотр" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'muted',textContent:'Не удалось загрузить картинку'}))" />` : '';
+      $('#imgPrev').innerHTML = /^(https?:\/\/|\/img\/)/i.test(v) ? `<img class="img-prev" src="${esc(v)}" alt="${tr('h.preview')}" data-fail="${esc(tr('h.imgFail'))}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'muted',textContent:this.dataset.fail}))" />` : '';
     };
     img.addEventListener('change', () => {
       q.image = img.value.trim();
@@ -692,7 +715,7 @@
           break;
         }
         case 'del':
-          if (!confirm('Удалить этот вопрос?')) return;
+          if (!confirm(tr('h.confirmDelQ'))) return;
           qs.splice(sel, 1);
           sel = Math.min(sel, qs.length - 1);
           break;
@@ -712,17 +735,18 @@
     ['sun', 'Солнце'], ['stars', 'Луна и звёзды'], ['dates', 'Финики'], ['trench', 'Ров у крепости'],
     ['ring', 'Перстень-печать'], ['dome', 'Мечеть Пророка ﷺ'], ['ship', 'Корабль в шторм'], ['fingerprint', 'Кончик пальца'],
     ['rain', 'Сухая потрескавшаяся земля'], ['honey', 'Мёд'], ['maunakea', 'Мауна-Кеа'], ['sunlight', 'Восход над Землёй из космоса'],
-    ['venus', 'Венера'],
-  ].map(([f, name]) => ({ src: `/img/photo/${f}.jpg`, name }));
+    ['venus', 'Венера'], ['kaaba'], ['domerock'], ['spiderweb'], ['elephant'], ['bee'], ['nour'],
+    ['arafat'], ['zamzam'], ['quba'], ['miswak'], ['cow'],
+  ].map(([f]) => ({ src: `/img/photo/${f}.jpg`, key: f }));
 
   function openGallery(onPick) {
     const back = document.createElement('div');
     back.className = 'modal-back';
     back.innerHTML = `
       <div class="card modal wide bounce-in" role="dialog" aria-modal="true" aria-labelledby="gt">
-        <div class="row"><h2 id="gt" style="margin:0">Галерея фото</h2><span class="spacer"></span><button class="btn btn-sm btn-ghost" id="gClose">Закрыть</button></div>
-        <p class="muted" style="margin:6px 0 16px">Нажмите на фото, чтобы добавить его к вопросу. Источники и лицензии — <a href="/credits" target="_blank" rel="noopener" style="color:var(--accent)">на этой странице</a>.</p>
-        <div class="gallery">${GALLERY.map((g) => `<button type="button" data-src="${esc(g.src)}"><img src="${esc(g.src)}" alt="" loading="lazy" /><span>${esc(g.name)}</span></button>`).join('')}</div>
+        <div class="row"><h2 id="gt" style="margin:0">${tr('h.gallery')}</h2><span class="spacer"></span><button class="btn btn-sm btn-ghost" id="gClose">${tr('h.close')}</button></div>
+        <p class="muted" style="margin:6px 0 16px">${tr('h.galleryHint')} <a href="/credits" target="_blank" rel="noopener" style="color:var(--accent)">${tr('h.creditsLink')}</a></p>
+        <div class="gallery">${GALLERY.map((g) => `<button type="button" data-src="${esc(g.src)}"><img src="${esc(g.src)}" alt="" loading="lazy" /><span>${esc(tr('g.' + g.key))}</span></button>`).join('')}</div>
       </div>`;
     document.body.appendChild(back);
     const close = () => back.remove();
@@ -744,17 +768,21 @@
     back.className = 'modal-back';
     back.innerHTML = `
       <div class="card modal bounce-in" role="dialog" aria-modal="true" aria-labelledby="lt">
-        <h2 id="lt">Запуск игры</h2>
-        <p class="muted" style="margin:0 0 20px">«${esc(quiz.title)}» · ${quiz.questions.length} вопр.</p>
+        <h2 id="lt">${tr('h.launch')}</h2>
+        <p class="muted" style="margin:0 0 20px">«${esc(quiz.title)}» · ${tr('nQuestions', { n: quiz.questions.length })}</p>
         <div style="display:grid;gap:16px">
           <label class="switch"><input type="checkbox" id="optShow" checked /><span class="track"></span>
-            <span><b>Показывать вопрос на телефонах</b><br /><span class="muted" style="font-size:14px">Удобно для онлайн-формата, когда участники не видят общий экран</span></span></label>
+            <span><b>${tr('h.showOnPhones')}</b><br /><span class="muted" style="font-size:14px">${tr('h.showOnPhonesD')}</span></span></label>
           <label class="switch"><input type="checkbox" id="optShuffle" /><span class="track"></span>
-            <span><b>Перемешать вопросы</b><br /><span class="muted" style="font-size:14px">Порядок вопросов будет случайным</span></span></label>
+            <span><b>${tr('h.shuffle')}</b><br /><span class="muted" style="font-size:14px">${tr('h.shuffleD')}</span></span></label>
+          <div>
+            <label class="label" for="optWinner">${tr('h.winnerSound')}</label>
+            <select class="select" id="optWinner"><option value="lion">${tr('ws.lion')}</option><option value="cheer">${tr('ws.cheer')}</option></select>
+          </div>
         </div>
         <div class="row" style="justify-content:flex-end;margin-top:26px">
-          <button class="btn btn-ghost" id="lCancel">Отмена</button>
-          <button class="btn btn-primary" id="lGo">Открыть комнату</button>
+          <button class="btn btn-ghost" id="lCancel">${tr('h.cancel')}</button>
+          <button class="btn btn-primary" id="lGo">${tr('h.openRoom')}</button>
         </div>
       </div>`;
     document.body.appendChild(back);
@@ -765,12 +793,12 @@
       e.target.disabled = true;
       const payload = {
         quiz: { title: quiz.title, questions: quiz.questions.map(({ id, ...q }) => q) },
-        settings: { showOnDevices: $('#optShow', back).checked, shuffleQuestions: $('#optShuffle', back).checked },
+        settings: { showOnDevices: $('#optShow', back).checked, shuffleQuestions: $('#optShuffle', back).checked, winnerSound: $('#optWinner', back).value },
       };
       const res = await emit(socket, 'host:create', payload);
       if (!res.ok) {
         e.target.disabled = false;
-        return toast(res.error, true);
+        return toast(errText(res), true);
       }
       store.set(STORE_HOST, { pin: res.pin, hostToken: res.hostToken }, sessionStorage);
       close();
@@ -782,7 +810,7 @@
 
   async function hostAction(action, extra) {
     const res = await emit(socket, 'host:action', { action, ...extra });
-    if (!res.ok) toast(res.error, true);
+    if (!res.ok) toast(errText(res), true);
     return res;
   }
 
@@ -807,22 +835,22 @@
         icon: Sound.isMuted() ? ICONS.soundOff : ICONS.soundOn,
         id: 'soundBtn',
         cls: 'btn-ghost btn-icon',
-        title: Sound.isMuted() ? 'Включить звук' : 'Выключить звук',
+        title: tr(Sound.isMuted() ? 'sound.on' : 'sound.off'),
         onClick: (e) => {
           const m = Sound.toggle();
           const b = e.currentTarget;
           b.innerHTML = m ? ICONS.soundOff : ICONS.soundOn;
-          b.title = m ? 'Включить звук' : 'Выключить звук';
+          b.title = tr(m ? 'sound.on' : 'sound.off');
           b.setAttribute('aria-label', b.title);
         },
       },
-      { icon: ICONS.fullscreen, cls: 'btn-ghost btn-icon', title: 'Во весь экран', onClick: () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {})) },
+      { icon: ICONS.fullscreen, cls: 'btn-ghost btn-icon', title: tr('h.fullscreen'), onClick: () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {})) },
     ];
     if (s.phase !== 'final') {
       actions.push({
-        label: 'Завершить',
+        label: tr('h.finish'),
         cls: 'btn-ghost btn-danger',
-        onClick: () => confirm('Завершить игру и показать итоги?') && hostAction('end'),
+        onClick: () => confirm(tr('h.confirmEnd')) && hostAction('end'),
       });
     }
     setTop(s.title, actions);
@@ -832,14 +860,14 @@
     return `<div class="answers">${q.answers
       .map((a, i) => {
         const ok = reveal && reveal.correct.includes(i);
-        return `<div class="ans a${i} ${reveal && !ok ? 'dim' : ''}"><span class="letter">${LETTERS[i]}</span><span>${esc(a)}</span>${ok ? '<span class="mark">✓</span>' : ''}</div>`;
+        return `<div class="ans a${i} ${reveal && !ok ? 'dim' : ''}"><span class="letter">${LETTERS[i]}</span><span>${esc(answerText(q, i))}</span>${ok ? '<span class="mark">✓</span>' : ''}</div>`;
       })
       .join('')}</div>`;
   }
 
   function pointsBadge(q) {
-    if (q.points === 2) return '<span class="pill" style="background:var(--accent);color:var(--accent-ink)">Двойные очки ×2</span>';
-    if (q.points === 0) return '<span class="pill">Без очков</span>';
+    if (q.points === 2) return `<span class="pill" style="background:var(--accent);color:var(--accent-ink)">${tr('h.double')}</span>`;
+    if (q.points === 0) return `<span class="pill">${tr('h.ptsNone')}</span>`;
     return '';
   }
 
@@ -855,7 +883,10 @@
     if (stopTimer) stopTimer();
     stopTimer = null;
     gameTop(s);
-    phaseSound(s, prevPhase);
+    if (quietRender) Sound.ambience(s.phase === 'lobby');
+    else phaseSound(s, prevPhase);
+    const age = performance.now() - (s._recv || performance.now());
+    const remaining = Math.max(0, (s.remainingMs || 0) - age);
     const q = s.question;
 
     switch (s.phase) {
@@ -865,25 +896,25 @@
             <div class="card lobby-top">
               <div>
                 <div class="join-steps">
-                  <div>Наведите камеру телефона на QR-код</div>
-                  <div>или откройте <span class="join-url" id="joinHost"></span> и введите PIN:</div>
+                  <div>${tr('h.scanQr')}</div>
+                  <div>${tr('h.orOpen')} <span class="join-url" id="joinHost"></span> ${tr('h.andPin')}</div>
                 </div>
-                <div class="pin-label">PIN игры</div>
+                <div class="pin-label">${tr('pinOfGame')}</div>
                 <div class="pin-big">${esc(prettyPin(s.pin))}</div>
                 <div class="row" style="margin-top:14px;flex-wrap:wrap;gap:8px">
-                  <button class="btn btn-sm" id="copyLink">Скопировать ссылку</button>
-                  <button class="btn btn-sm btn-ghost" id="editBase">Изменить адрес</button>
+                  <button class="btn btn-sm" id="copyLink">${tr('h.copyLink')}</button>
+                  <button class="btn btn-sm btn-ghost" id="editBase">${tr('h.editBase')}</button>
                 </div>
                 <div id="baseWarn" class="muted" style="margin-top:10px;font-size:14px;max-width:560px"></div>
               </div>
-              <div class="qr-box"><img id="qrImg" alt="QR-код для входа в игру" /></div>
+              <div class="qr-box"><img id="qrImg" alt="${tr('h.qrAlt')}" /></div>
             </div>
             <div class="lobby-bar">
               <div class="count">${ICONS.users}<span id="pCount">${s.players.length}</span></div>
-              <span class="muted" style="font-weight:700">участников</span>
+              <span class="muted" style="font-weight:700">${tr('h.participants')}</span>
               <span class="spacer"></span>
-              <label class="switch"><input type="checkbox" id="lockT" ${s.locked ? 'checked' : ''} /><span class="track"></span><span style="font-weight:700">Закрыть вход</span></label>
-              <button class="btn btn-primary btn-lg" id="startBtn" ${s.players.length ? '' : 'disabled'}>Начать игру ${ICONS.play}</button>
+              <label class="switch"><input type="checkbox" id="lockT" ${s.locked ? 'checked' : ''} /><span class="track"></span><span style="font-weight:700">${tr('h.lock')}</span></label>
+              <button class="btn btn-primary btn-lg" id="startBtn" ${s.players.length ? '' : 'disabled'}>${tr('h.start')} ${ICONS.play}</button>
             </div>
             <div class="players" id="players"></div>
           </div>`;
@@ -894,7 +925,7 @@
           $('#qrImg').src = `/api/qr?data=${encodeURIComponent(url)}`;
           const h = new URL(base).hostname;
           $('#baseWarn').textContent = ['localhost', '127.0.0.1', '[::1]'].includes(h)
-            ? 'Внимание: адрес localhost недоступен с телефонов. Нажмите «Изменить адрес» и укажите IP компьютера в сети или публичный адрес.'
+            ? tr('h.localWarn')
             : '';
         };
         infoReady.then(fillJoin);
@@ -902,8 +933,8 @@
         $('#copyLink').addEventListener('click', () => {
           const url = joinUrl(s.pin);
           (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject())
-            .then(() => toast('Ссылка скопирована'))
-            .catch(() => prompt('Ссылка для участников:', url));
+            .then(() => toast(tr('h.linkCopied')))
+            .catch(() => prompt(tr('h.linkForPlayers'), url));
         });
         $('#editBase').addEventListener('click', () => {
           const v = prompt('Адрес, по которому участники откроют сайт.\nНапример: https://my-quiz.onrender.com или http://192.168.1.10:3000\nОставьте пустым, чтобы вернуть адрес по умолчанию.', joinBase());
@@ -923,14 +954,14 @@
         view.innerHTML = `
           <div class="stage">
             <div class="preview fade-in"><div style="width:100%">
-              <div class="row" style="justify-content:center;gap:10px"><span class="pill">Вопрос ${s.qIndex + 1} из ${s.qTotal}</span>${pointsBadge(q)}</div>
+              <div class="row" style="justify-content:center;gap:10px"><span class="pill">${tr('qNum', { n: s.qIndex + 1, total: s.qTotal })}</span>${pointsBadge(q)}</div>
               <div class="qtext${q.image ? ' with-img' : ''}">${esc(q.text)}</div>
               ${q.image ? `<img class="pv-img" src="${esc(q.image)}" alt="" />` : ''}
               <div class="bar" style="max-width:640px;margin:0 auto"><i id="pbar"></i></div>
             </div></div>
-            <div class="controls"><button class="btn btn-ghost" id="skipBtn">Сразу к ответам ${ICONS.next}</button></div>
+            <div class="controls"><button class="btn btn-ghost" id="skipBtn">${tr('h.skipToAnswers')} ${ICONS.next}</button></div>
           </div>`;
-        stopTimer = countdown(s.remainingMs, 4000, (left, frac) => {
+        stopTimer = countdown(remaining, 4000, (left, frac) => {
           const el = $('#pbar');
           if (el) el.style.transform = `scaleX(${1 - frac})`;
         });
@@ -943,18 +974,18 @@
             <div class="qcard">${esc(q.text)}</div>
             <div class="qmid">
               <div class="side"><div class="ring" id="ring">${ringSVG()}</div></div>
-              <div class="img">${q.image ? `<img src="${esc(q.image)}" alt="" />` : `<div style="display:grid;justify-items:center;gap:12px;text-align:center"><span class="pill">Вопрос ${s.qIndex + 1} из ${s.qTotal}</span>${pointsBadge(q)}<span class="muted" style="font-size:20px;font-weight:700;display:inline-flex;gap:8px;align-items:center">${ICONS.phone} Отвечайте на телефонах</span></div>`}</div>
+              <div class="img">${q.image ? `<img src="${esc(q.image)}" alt="" />` : `<div style="display:grid;justify-items:center;gap:12px;text-align:center"><span class="pill">${tr('qNum', { n: s.qIndex + 1, total: s.qTotal })}</span>${pointsBadge(q)}<span class="muted" style="font-size:20px;font-weight:700;display:inline-flex;gap:8px;align-items:center">${ICONS.phone} ${tr('h.answerOnPhones')}</span></div>`}</div>
               <div class="side">
                 <div class="answered" id="answered">${s.answeredCount}</div>
-                <div class="muted" style="font-weight:700">ответов из <span id="activeCnt">${s.activeCount}</span></div>
-                <button class="btn btn-sm btn-ghost" id="skipBtn" style="margin-top:8px">Завершить приём ${ICONS.next}</button>
+                <div class="muted" style="font-weight:700">${tr('h.answersOf')} <span id="activeCnt">${s.activeCount}</span></div>
+                <button class="btn btn-sm btn-ghost" id="skipBtn" style="margin-top:8px">${tr('h.endIntake')} ${ICONS.next}</button>
               </div>
             </div>
             ${answerTiles(q, null)}
           </div>`;
         {
-          let lastSec = Math.ceil(s.remainingMs / 1000);
-          stopTimer = countdown(s.remainingMs, q.timeLimit * 1000, (left, frac) => {
+          let lastSec = Math.ceil(remaining / 1000);
+          stopTimer = countdown(remaining, q.timeLimit * 1000, (left, frac) => {
             updateRing($('#ring'), left, frac);
             const whole = Math.ceil(left / 1000);
             if (whole !== lastSec) {
@@ -985,8 +1016,8 @@
             </div>
             ${answerTiles(q, r)}
             <div class="controls" style="align-items:center">
-              <span class="muted" style="font-weight:700;margin-right:auto">Ответили ${r.answered} из ${s.players.length} · правильно ${r.correct.reduce((n, i) => n + r.counts[i], 0)}</span>
-              <button class="btn btn-primary btn-lg" id="nextBtn">${last ? 'Итоги игры' : 'Таблица лидеров'} ${ICONS.next}</button>
+              <span class="muted" style="font-weight:700;margin-right:auto">${tr('h.answeredStats', { a: r.answered, n: s.players.length, c: r.correct.reduce((n, i) => n + r.counts[i], 0) })}</span>
+              <button class="btn btn-primary btn-lg" id="nextBtn">${last ? tr('h.results') : tr('h.leaderboard')} ${ICONS.next}</button>
             </div>
           </div>`;
         $('#nextBtn').addEventListener('click', () => hostAction('next'));
@@ -997,7 +1028,7 @@
         const lb = s.leaderboard || [];
         view.innerHTML = `
           <div class="stage fade-in">
-            <h1 class="h" style="text-align:center">Таблица лидеров</h1>
+            <h1 class="h" style="text-align:center">${tr('h.leaderboard')}</h1>
             <div class="lb">
               ${lb.length ? lb.map((p, i) => {
                 const mv = p.prevRank && p.prevRank !== p.rank ? (p.prevRank > p.rank ? `<span class="move up">▲${p.prevRank - p.rank}</span>` : `<span class="move down">▼${p.rank - p.prevRank}</span>`) : '';
@@ -1007,9 +1038,9 @@
                   <span class="plus">${p.lastPoints ? '+' + fmt(p.lastPoints) : ''}</span>
                   <span class="sc" data-from="${p.score - p.lastPoints}" data-to="${p.score}">${fmt(p.score - p.lastPoints)}</span>
                 </div>`;
-              }).join('') : '<div class="waiting">Нет участников</div>'}
+              }).join('') : `<div class="waiting">${tr('h.noPlayers')}</div>`}
             </div>
-            <div class="controls"><button class="btn btn-primary btn-lg" id="nextBtn">Следующий вопрос ${ICONS.next}</button></div>
+            <div class="controls"><button class="btn btn-primary btn-lg" id="nextBtn">${tr('h.nextQ')} ${ICONS.next}</button></div>
           </div>`;
         setTimeout(() => $$('.lb-row .sc').forEach((el) => animateNumber(el, Number(el.dataset.from), Number(el.dataset.to))), 400);
         $('#nextBtn').addEventListener('click', () => hostAction('next'));
@@ -1024,19 +1055,19 @@
             : `<div class="pod p${n}" style="visibility:hidden"><div class="block"></div></div>`;
         view.innerHTML = `
           <div class="stage fade-in">
-            <div style="text-align:center"><h1 class="h">${esc(s.title)}</h1><p class="muted" style="margin:6px 0 0;font-weight:700">Итоги игры · ${lb.length} участн.</p></div>
+            <div style="text-align:center"><h1 class="h">${esc(s.title)}</h1><p class="muted" style="margin:6px 0 0;font-weight:700">${tr('h.resultsN', { n: lb.length })}</p></div>
             <div class="announce" id="announce">&nbsp;</div>
             <div class="podium"><div class="rays" id="rays"></div>${pod(lb[1], 2)}${pod(lb[0], 1)}${pod(lb[2], 3)}</div>
             <div class="controls" style="justify-content:center">
-              <button class="btn btn-ghost btn-sm" id="skipAnim">Пропустить анимацию</button>
+              <button class="btn btn-ghost btn-sm" id="skipAnim">${tr('h.skipAnim')}</button>
               <div class="row later" id="finalBtns" style="gap:10px;flex-wrap:wrap;justify-content:center">
-                <button class="btn" id="allBtn">Все результаты</button>
-                <button class="btn" id="csvBtn">Скачать CSV</button>
-                <button class="btn btn-primary" id="newBtn">Новая игра</button>
+                <button class="btn" id="allBtn">${tr('h.allResults')}</button>
+                <button class="btn" id="csvBtn">${tr('h.csv')}</button>
+                <button class="btn btn-primary" id="newBtn">${tr('h.newGame')}</button>
               </div>
             </div>
             <div class="card" id="allRes" hidden style="padding:8px 16px;overflow:auto">
-              <table class="res"><thead><tr><th>Место</th><th>Участник</th><th>Очки</th><th>Верных ответов</th></tr></thead>
+              <table class="res"><thead><tr><th>${tr('col.place')}</th><th>${tr('col.player')}</th><th>${tr('col.points')}</th><th>${tr('col.correct')}</th></tr></thead>
               <tbody>${lb.map((p) => `<tr><td>${p.rank}</td><td><span style="display:inline-flex;gap:10px;align-items:center">${avatar(p.name, p.color)} ${esc(p.name)}</span></td><td>${fmt(p.score)}</td><td>${p.correctCount} / ${s.qTotal}</td></tr>`).join('')}</tbody></table>
             </div>
           </div>`;
@@ -1048,8 +1079,8 @@
         });
         $('#csvBtn').addEventListener('click', () => {
           const cell = (v) => `"${String(v).replace(/"/g, '""')}"`;
-          const rows = [['Место', 'Имя', 'Очки', 'Верных ответов', 'Всего вопросов'], ...lb.map((p) => [p.rank, p.name, p.score, p.correctCount, s.qTotal])];
-          download(`${fileSafe(s.title)} — результаты.csv`, '﻿' + rows.map((r) => r.map(cell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
+          const rows = [[tr('col.place'), tr('col.name'), tr('col.points'), tr('col.correct'), tr('col.total')], ...lb.map((p) => [p.rank, p.name, p.score, p.correctCount, s.qTotal])];
+          download(`${fileSafe(s.title)} — ${tr('h.csvName')}.csv`, '﻿' + rows.map((r) => r.map(cell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
         });
         $('#newBtn').addEventListener('click', async () => {
           await hostAction('close');
@@ -1069,13 +1100,13 @@
    */
   function runPodium(s, lb) {
     const tl = podiumTimeline(Math.min(3, lb.length));
-    const startedAt = performance.now() - (s.elapsedMs || 0);
+    const startedAt = (s._recv || performance.now()) - (s.elapsedMs || 0);
     const now = () => performance.now() - startedAt;
     const timers = [];
     const announce = $('#announce');
     const rays = $('#rays');
     const podEl = (n) => view.querySelector(`.pod[data-place="${n}"]`);
-    const WORDS = { 3: 'Третье место…', 2: 'Второе место…', 1: 'И победитель…' };
+    const WORDS = { 3: tr('pod.3'), 2: tr('pod.2'), 1: tr('pod.1') };
     const winner = lb[0];
     let finished = false;
 
@@ -1088,13 +1119,13 @@
       if (place === 1) {
         if (rays) rays.classList.add('on');
         announce.className = 'announce win';
-        announce.textContent = winner ? `Победитель — ${winner.name}!` : '';
+        announce.textContent = winner ? tr('pod.winner', { name: winner.name }) : '';
         if (withFx) confetti(6500);
       } else {
         announce.className = 'announce';
-        announce.textContent = `${place} место — ${lb[place - 1] ? lb[place - 1].name : ''}`;
+        announce.textContent = tr('pod.place', { place, name: lb[place - 1] ? lb[place - 1].name : '' });
       }
-      if (withFx) Sound.podiumHit(place);
+      if (withFx) Sound.podiumHit(place, s.settings && s.settings.winnerSound);
     };
     const finish = () => {
       if (finished) return;
@@ -1123,7 +1154,7 @@
       });
       at(step.hitAt, () => reveal(step.place, true));
     });
-    if (!lb.length) announce.textContent = 'Участников нет';
+    if (!lb.length) announce.textContent = tr('h.noPlayers');
     if (now() >= tl.endAt) finish();
     else at(tl.endAt, finish);
 
@@ -1184,15 +1215,15 @@
         chip = document.createElement('button');
         chip.className = 'chip';
         chip.dataset.id = p.id;
-        chip.title = 'Нажмите, чтобы удалить участника';
+        chip.title = tr('h.kickHint');
         chip.innerHTML = `${avatar(p.name, p.color)}<span>${esc(p.name)}</span>`;
         if (!initial) Sound.join();
-        chip.addEventListener('click', () => confirm(`Удалить «${p.name}» из игры?`) && hostAction('kick', { playerId: p.id }));
+        chip.addEventListener('click', () => confirm(tr('h.confirmKick', { name: p.name })) && hostAction('kick', { playerId: p.id }));
         wrap.appendChild(chip);
       }
       chip.classList.toggle('off', !p.connected);
     });
-    if (!s.players.length) wrap.insertAdjacentHTML('beforeend', '<div class="waiting">Ждём участников…</div>');
+    if (!s.players.length) wrap.insertAdjacentHTML('beforeend', `<div class="waiting">${tr('h.waiting')}</div>`);
   }
 
   function partialUpdate(s) {
@@ -1218,6 +1249,25 @@
     }
   }
 
+  // Переключатель языка: перерисовываем текущий экран без повторных звуков
+  document.title = tr('h.pageTitle');
+  I18N.mountSwitcher($('#langSw'));
+  I18N.onChange(() => {
+    I18N.mountSwitcher($('#langSw'));
+    document.title = tr('h.pageTitle');
+    if (mode === 'library') renderLibrary();
+    else if (mode === 'editor') renderEditor();
+    else if (mode === 'game' && game) {
+      quietRender = true;
+      renderedKey = '';
+      try {
+        renderGame(game);
+      } finally {
+        quietRender = false;
+      }
+    }
+  });
+
   // Горячие клавиши: пробел / → — дальше (на экранах результатов)
   document.addEventListener('keydown', (e) => {
     if (mode !== 'game' || !game) return;
@@ -1229,12 +1279,14 @@
   });
 
   socket.on('state', (s) => {
-    if (s.role === 'host') renderGame(s);
+    if (s.role !== 'host') return;
+    s._recv = performance.now();
+    renderGame(s);
   });
 
   socket.on('host-replaced', () => {
     mode = 'library';
-    view.innerHTML = `<div class="page"><div class="card empty"><h2>Игра открыта в другой вкладке</h2><p class="muted">Управление перешло в другое окно.</p><button class="btn btn-primary" onclick="location.reload()">Вернуть управление сюда</button></div></div>`;
+    view.innerHTML = `<div class="page"><div class="card empty"><h2>${tr('h.otherTab')}</h2><p class="muted">${tr('h.otherTabD')}</p><button class="btn btn-primary" onclick="location.reload()">${tr('h.takeBack')}</button></div></div>`;
   });
 
   socket.on('connect', async () => {
@@ -1253,7 +1305,7 @@
     } else {
       store.set(STORE_HOST, null, sessionStorage);
       if (mode === 'boot' || mode === 'game') {
-        if (mode === 'game') toast('Игра больше не доступна', true);
+        if (mode === 'game') toast(tr('h.gameGone'), true);
         renderLibrary();
       }
     }

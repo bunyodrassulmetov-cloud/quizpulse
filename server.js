@@ -6,7 +6,7 @@ const path = require('path');
 const express = require('express');
 const QRCode = require('qrcode');
 const { Server } = require('socket.io');
-const { GameManager } = require('./src/game');
+const { GameManager, gameError } = require('./src/game');
 
 const PORT = Number(process.env.PORT) || 3000;
 // Публичный адрес (например, после деплоя или туннеля): https://my-quiz.onrender.com
@@ -61,7 +61,7 @@ app.get('/healthz', (req, res) => res.json({ ok: true, rooms: games.games.size }
 // ---------------- Сокеты ----------------
 
 const safeAck = (ack) => (typeof ack === 'function' ? ack : () => {});
-const fail = (ack, e) => ack({ ok: false, error: e && e.message ? e.message : String(e) });
+const fail = (ack, e) => ack({ ok: false, code: (e && e.code) || undefined, error: e && e.message ? e.message : String(e) });
 
 io.on('connection', (socket) => {
   const hostGame = () => {
@@ -93,7 +93,7 @@ io.on('connection', (socket) => {
   socket.on('host:rejoin', (payload, ack) => {
     ack = safeAck(ack);
     const g = games.get(payload && payload.pin);
-    if (!g || g.hostToken !== (payload && payload.hostToken)) return fail(ack, new Error('Игра не найдена'));
+    if (!g || g.hostToken !== (payload && payload.hostToken)) return fail(ack, gameError('game_not_found', 'Игра не найдена'));
     if (g.hostSocketId && g.hostSocketId !== socket.id) io.to(g.hostSocketId).emit('host-replaced');
     g.hostSocketId = socket.id;
     socket.data = { role: 'host', pin: g.pin };
@@ -105,7 +105,7 @@ io.on('connection', (socket) => {
   socket.on('host:action', (payload, ack) => {
     ack = safeAck(ack);
     const g = hostGame();
-    if (!g) return fail(ack, new Error('Нет доступа к игре'));
+    if (!g) return fail(ack, gameError('no_access', 'Нет доступа к игре'));
     const action = payload && payload.action;
     try {
       switch (action) {
@@ -141,16 +141,16 @@ io.on('connection', (socket) => {
   socket.on('room:check', (payload, ack) => {
     ack = safeAck(ack);
     const g = games.get(payload && payload.pin);
-    if (!g) return ack({ ok: false, error: 'Игра с таким PIN не найдена' });
-    if (g.locked) return ack({ ok: false, error: 'Вход в игру закрыт ведущим' });
-    if (g.phase === 'final') return ack({ ok: false, error: 'Эта игра уже закончилась' });
+    if (!g) return ack({ ok: false, code: 'pin_not_found', error: 'Игра с таким PIN не найдена' });
+    if (g.locked) return ack({ ok: false, code: 'locked', error: 'Вход в игру закрыт ведущим' });
+    if (g.phase === 'final') return ack({ ok: false, code: 'ended', error: 'Эта игра уже закончилась' });
     ack({ ok: true, title: g.title, started: g.phase !== 'lobby' });
   });
 
   socket.on('player:join', (payload, ack) => {
     ack = safeAck(ack);
     const g = games.get(payload && payload.pin);
-    if (!g) return fail(ack, new Error('Игра с таким PIN не найдена'));
+    if (!g) return fail(ack, gameError('pin_not_found', 'Игра с таким PIN не найдена'));
     try {
       const p = g.addPlayer({ name: payload.name, socketId: socket.id });
       socket.data = { role: 'player', pin: g.pin, playerId: p.id };
@@ -165,7 +165,7 @@ io.on('connection', (socket) => {
     ack = safeAck(ack);
     const g = games.get(payload && payload.pin);
     const p = g && g.reconnectPlayer(String((payload && payload.token) || ''), socket.id);
-    if (!p) return fail(ack, new Error('Сессия не найдена'));
+    if (!p) return fail(ack, gameError('session_not_found', 'Сессия не найдена'));
     socket.data = { role: 'player', pin: g.pin, playerId: p.id };
     ack({ ok: true, playerId: p.id });
     g.emitToPlayer(p);
@@ -174,7 +174,7 @@ io.on('connection', (socket) => {
   socket.on('player:answer', (payload, ack) => {
     ack = safeAck(ack);
     const ctx = playerCtx();
-    if (!ctx) return fail(ack, new Error('Вы не в игре'));
+    if (!ctx) return fail(ack, gameError('not_in_game', 'Вы не в игре'));
     try {
       ctx.g.submitAnswer(ctx.p.id, Number(payload && payload.index));
       ack({ ok: true });

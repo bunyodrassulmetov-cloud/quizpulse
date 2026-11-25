@@ -20,6 +20,9 @@ const BASE_POINTS = 1000;
 const ALLOWED_TIMES = [5, 10, 20, 30, 45, 60, 90, 120];
 const AVATAR_COLORS = 10; // аватар — цветной кружок с инициалами, цвет выдаётся по очереди
 
+/** Ошибка с кодом: клиент показывает её на языке интерфейса */
+const gameError = (code, message) => Object.assign(new Error(message), { code });
+
 const token = () => crypto.randomBytes(16).toString('hex');
 const id = () => crypto.randomBytes(6).toString('hex');
 
@@ -81,6 +84,7 @@ class Game {
     this.settings = {
       showOnDevices: settings ? settings.showOnDevices !== false : true,
       shuffleQuestions: !!(settings && settings.shuffleQuestions),
+      winnerSound: settings && settings.winnerSound === 'cheer' ? 'cheer' : 'lion',
     };
     this.title = clean.title;
     this.questions = this.settings.shuffleQuestions ? shuffle(clean.questions) : clean.questions;
@@ -112,14 +116,14 @@ class Game {
   // ---------- Игроки ----------
 
   addPlayer({ name, socketId }) {
-    if (this.locked) throw new Error('Ведущий закрыл вход в игру');
-    if (this.phase === PHASE.FINAL) throw new Error('Игра уже закончилась');
-    if (this.players.size >= MAX_PLAYERS) throw new Error('Комната заполнена');
+    if (this.locked) throw gameError('locked', 'Ведущий закрыл вход в игру');
+    if (this.phase === PHASE.FINAL) throw gameError('ended', 'Игра уже закончилась');
+    if (this.players.size >= MAX_PLAYERS) throw gameError('full', 'Комната заполнена');
     const clean = clampStr(name, 20);
-    if (clean.length < 1) throw new Error('Введите имя');
+    if (clean.length < 1) throw gameError('name_required', 'Введите имя');
     const lower = clean.toLowerCase();
     for (const p of this.players.values()) {
-      if (p.name.toLowerCase() === lower) throw new Error('Такое имя уже занято — выберите другое');
+      if (p.name.toLowerCase() === lower) throw gameError('name_taken', 'Такое имя уже занято — выберите другое');
     }
     const player = {
       id: id(),
@@ -183,7 +187,7 @@ class Game {
 
   start() {
     if (this.phase !== PHASE.LOBBY) return;
-    if (this.players.size === 0) throw new Error('Дождитесь хотя бы одного участника');
+    if (this.players.size === 0) throw gameError('need_player', 'Дождитесь хотя бы одного участника');
     this.nextQuestion();
   }
 
@@ -237,14 +241,14 @@ class Game {
   }
 
   submitAnswer(playerId, index) {
-    if (this.phase !== PHASE.QUESTION) throw new Error('Сейчас нельзя отвечать');
+    if (this.phase !== PHASE.QUESTION) throw gameError('not_now', 'Сейчас нельзя отвечать');
     const p = this.players.get(playerId);
-    if (!p) throw new Error('Игрок не найден');
-    if (this.answers.has(playerId)) throw new Error('Ответ уже принят');
+    if (!p) throw gameError('player_not_found', 'Игрок не найден');
+    if (this.answers.has(playerId)) throw gameError('already', 'Ответ уже принят');
     const q = this.question;
-    if (!Number.isInteger(index) || index < 0 || index >= q.answers.length) throw new Error('Неверный вариант');
+    if (!Number.isInteger(index) || index < 0 || index >= q.answers.length) throw gameError('bad_option', 'Неверный вариант');
     const now = Date.now();
-    if (now > this.phaseEndsAt + ANSWER_GRACE_MS) throw new Error('Время вышло');
+    if (now > this.phaseEndsAt + ANSWER_GRACE_MS) throw gameError('time_up', 'Время вышло');
     const elapsedMs = Math.max(0, Math.min(now - this.questionStartedAt, q.timeLimit * 1000));
     this.answers.set(playerId, { index, elapsedMs });
     this.touch();
@@ -389,7 +393,7 @@ class Game {
 
   playerView(p) {
     const q = this.question;
-    const view = { ...this.baseView(), role: 'player', showOnDevices: this.settings.showOnDevices };
+    const view = { ...this.baseView(), role: 'player', showOnDevices: this.settings.showOnDevices, winnerSound: this.settings.winnerSound };
     const ranking = this.ranking();
     const rank = ranking.findIndex((x) => x.id === p.id) + 1;
     view.me = { id: p.id, name: p.name, color: p.color, score: p.score, streak: p.streak, rank, total: ranking.length };
@@ -478,4 +482,4 @@ class GameManager {
   }
 }
 
-module.exports = { Game, GameManager, PHASE, sanitizeQuiz };
+module.exports = { Game, GameManager, PHASE, sanitizeQuiz, gameError };

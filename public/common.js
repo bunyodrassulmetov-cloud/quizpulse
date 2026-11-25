@@ -25,8 +25,8 @@
   function emit(socket, event, payload) {
     return new Promise((resolve) => {
       socket.timeout(8000).emit(event, payload, (err, res) => {
-        if (err) resolve({ ok: false, error: 'Нет ответа от сервера' });
-        else resolve(res || { ok: false, error: 'Пустой ответ' });
+        if (err) resolve({ ok: false, error: window.QPI18N.t('conn.noAnswer') });
+        else resolve(res || { ok: false, error: window.QPI18N.t('conn.noAnswer') });
       });
     });
   }
@@ -38,7 +38,7 @@
       if (banner) return;
       banner = document.createElement('div');
       banner.className = 'conn-banner';
-      banner.textContent = 'Нет соединения с сервером — переподключаемся…';
+      banner.textContent = window.QPI18N.t('conn.lost');
       document.body.appendChild(banner);
     };
     const hide = () => {
@@ -196,5 +196,17 @@
     return { steps, endAt: t + 1800 };
   }
 
-  window.QP = { podiumTimeline, LETTERS, esc, $, $$, toast, emit, watchConnection, countdown, ringSVG, updateRing, confetti, animateNumber, fmt, BRAND_SVG, ICONS, avatar, initials };
+  /** Текст ошибки сервера на языке интерфейса (по коду ошибки) */
+  function errText(res) {
+    const I = window.QPI18N;
+    if (res && res.code && I.has('err.' + res.code)) return I.t('err.' + res.code);
+    return (res && res.error) || I.t('conn.noAnswer');
+  }
+  /** Текст варианта ответа: «Верно/Неверно» — на языке интерфейса */
+  function answerText(q, i) {
+    if (q && q.type === 'truefalse') return window.QPI18N.t(i === 0 ? 'true' : 'false');
+    return q && q.answers ? q.answers[i] : '';
+  }
+
+  window.QP = { errText, answerText, podiumTimeline, LETTERS, esc, $, $$, toast, emit, watchConnection, countdown, ringSVG, updateRing, confetti, animateNumber, fmt, BRAND_SVG, ICONS, avatar, initials };
 })();

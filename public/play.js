@@ -1,6 +1,8 @@
 /* Экран участника */
 (function () {
-  const { LETTERS, esc, $, toast, emit, watchConnection, countdown, fmt, confetti, BRAND_SVG, ICONS, avatar, podiumTimeline } = window.QP;
+  const { LETTERS, esc, $, toast, emit, watchConnection, countdown, fmt, confetti, BRAND_SVG, ICONS, avatar, podiumTimeline, errText, answerText } = window.QP;
+  const I18N = window.QPI18N;
+  const tr = I18N.t;
   const Sound = window.QPSound;
   $('#brandMark').innerHTML = BRAND_SVG;
 
@@ -46,15 +48,15 @@
     app.innerHTML = `
       <div class="center fade-in">
         <div class="card join-card">
-          <h1>Войти в игру</h1>
-          <p class="muted" style="margin:0">Введите PIN с экрана ведущего или отсканируйте QR-код</p>
+          <h1>${tr('p.joinTitle')}</h1>
+          <p class="muted" style="margin:0">${tr('p.joinHint')}</p>
           <form id="pinForm" style="display:grid;gap:12px">
-            <input class="input pin-input" id="pinInput" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="000000" value="${esc(prefill)}" aria-label="PIN игры" />
+            <input class="input pin-input" id="pinInput" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="000000" value="${esc(prefill)}" aria-label="${tr('pinOfGame')}" />
             ${error ? `<div style="color:#ffb3b5;font-weight:700">${esc(error)}</div>` : ''}
-            <button class="btn btn-primary btn-lg" type="submit">Далее</button>
+            <button class="btn btn-primary btn-lg" type="submit">${tr('p.next')}</button>
           </form>
         </div>
-        <p class="host-link">Хотите провести свою викторину? <a href="/host">Стать ведущим →</a></p>
+        <p class="host-link">${tr('p.hostQ')} <a href="/host">${tr('p.beHost')}</a></p>
       </div>`;
     const input = $('#pinInput');
     input.addEventListener('input', () => (input.value = input.value.replace(/\D/g, '').slice(0, 6)));
@@ -67,9 +69,9 @@
 
   async function checkPin(value) {
     const clean = String(value || '').replace(/\D/g, '');
-    if (clean.length !== 6) return renderPin(clean, 'PIN состоит из 6 цифр');
+    if (clean.length !== 6) return renderPin(clean, tr('p.pinDigits'));
     const res = await emit(socket, 'room:check', { pin: clean });
-    if (!res.ok) return renderPin(clean, res.error);
+    if (!res.ok) return renderPin(clean, errText(res));
     pin = clean;
     roomTitle = res.title;
     renderName();
@@ -84,18 +86,18 @@
     app.innerHTML = `
       <div class="center fade-in">
         <div class="card join-card">
-          <div class="muted" style="font-weight:700">Игра</div>
+          <div class="muted" style="font-weight:700">${tr('p.game')}</div>
           <h1 style="margin-top:-8px">${esc(roomTitle)}</h1>
           <form id="nameForm" style="display:grid;gap:14px">
             <div>
-              <label class="label" for="nameInput">Ваше имя</label>
-              <input class="input" id="nameInput" maxlength="20" autocomplete="nickname" placeholder="Например, Аня" value="${esc(prevName)}" />
+              <label class="label" for="nameInput">${tr('p.yourName')}</label>
+              <input class="input" id="nameInput" maxlength="20" autocomplete="nickname" placeholder="${tr('p.namePh')}" value="${esc(prevName)}" />
             </div>
             ${error ? `<div style="color:#ffb3b5;font-weight:700">${esc(error)}</div>` : ''}
-            <button class="btn btn-primary btn-lg" type="submit">Поехали!</button>
+            <button class="btn btn-primary btn-lg" type="submit">${tr('p.go')}</button>
           </form>
         </div>
-        <button class="btn btn-ghost btn-sm" id="backBtn">← Другой PIN</button>
+        <button class="btn btn-ghost btn-sm" id="backBtn">${tr('p.otherPin')}</button>
       </div>`;
     $('#backBtn').addEventListener('click', () => {
       history.replaceState(null, '', '/');
@@ -104,11 +106,11 @@
     $('#nameForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = $('#nameInput').value.trim();
-      if (!name) return renderName('Введите имя');
+      if (!name) return renderName(tr('err.name_required'));
       const btn = e.submitter || app.querySelector('button[type=submit]');
       btn.disabled = true;
       const res = await emit(socket, 'player:join', { pin, name });
-      if (!res.ok) return renderName(res.error);
+      if (!res.ok) return renderName(errText(res));
       saveSession({ pin, token: res.token, lastName: name });
       history.replaceState(null, '', `/join?pin=${pin}`);
       screen = 'game';
@@ -124,7 +126,7 @@
     if (!state || !state.me) return (footer.hidden = true);
     footer.hidden = false;
     footer.innerHTML = `${avatar(state.me.name, state.me.color)}<span class="name">${esc(state.me.name)}</span>
-      <button class="sound-btn" id="soundBtn" aria-label="${Sound.isMuted() ? 'Включить звук' : 'Выключить звук'}">${Sound.isMuted() ? ICONS.soundOff : ICONS.soundOn}</button>
+      <button class="sound-btn" id="soundBtn" aria-label="${tr(Sound.isMuted() ? 'sound.on' : 'sound.off')}">${Sound.isMuted() ? ICONS.soundOff : ICONS.soundOn}</button>
       <span class="score">${fmt(state.me.score)}</span>`;
     $('#soundBtn').addEventListener('click', () => {
       Sound.toggle();
@@ -158,8 +160,8 @@
   function rankLine(s) {
     const r = s.result;
     if (!s.me.rank) return '';
-    if (s.me.rank === 1) return 'Вы на <b>1 месте</b> — так держать!';
-    return `Вы на <b>${s.me.rank} месте</b>${r && r.aheadName ? ` · до «${esc(r.aheadName)}» ${fmt(r.gap)} очк.` : ''}`;
+    if (s.me.rank === 1) return tr('p.rank1');
+    return tr('p.rankN', { rank: s.me.rank }) + (r && r.aheadName ? tr('p.behind', { name: esc(r.aheadName), gap: fmt(r.gap) }) : '');
   }
 
   function answersMarkup(q, chosen) {
@@ -169,7 +171,7 @@
     return `<div class="p-answers ${cls}" id="answers">
       ${Array.from({ length: n }, (_, i) => `
         <button class="ans a${i} ${chosen != null && chosen !== i ? 'dim' : ''}" data-i="${i}" ${chosen != null ? 'disabled' : ''}>
-          <span class="letter">${LETTERS[i]}</span>${showText ? `<span>${esc(q.answers[i])}</span>` : ''}
+          <span class="letter">${LETTERS[i]}</span>${showText ? `<span>${esc(answerText(q, i))}</span>` : ''}
         </button>`).join('')}
     </div>`;
   }
@@ -187,18 +189,22 @@
     phaseSound(s);
 
     const q = s.question;
-    const qNum = `Вопрос ${s.qIndex + 1} из ${s.qTotal}`;
+    const qNum = tr('qNum', { n: s.qIndex + 1, total: s.qTotal });
+    // сколько прошло с получения состояния (важно при перерисовке, например при смене языка)
+    const age = performance.now() - (s._recv || performance.now());
+    const remaining = Math.max(0, (s.remainingMs || 0) - age);
+    const elapsed = (s.elapsedMs || 0) + age;
 
     switch (s.phase) {
       case 'lobby':
         app.innerHTML = `
           <div class="center fade-in">
             <div class="bounce-in">${avatar(s.me.name, s.me.color, 'xl')}</div>
-            <h1 class="title-xl">Вы в игре!</h1>
-            <p class="muted" style="margin:0;font-size:17px">Смотрите на экран ведущего — скоро начнём</p>
+            <h1 class="title-xl">${tr('p.inGame')}</h1>
+            <p class="muted" style="margin:0;font-size:17px">${tr('p.watchStart')}</p>
             <div class="dots" style="margin:10px 0"><span></span><span></span><span></span></div>
-            <div class="pill">Участников: ${s.me.total}</div>
-            <button class="btn btn-ghost btn-sm" id="leaveBtn" style="margin-top:20px">Выйти из игры</button>
+            <div class="pill">${tr('p.players', { n: s.me.total })}</div>
+            <button class="btn btn-ghost btn-sm" id="leaveBtn" style="margin-top:20px">${tr('p.leave')}</button>
           </div>`;
         $('#leaveBtn').addEventListener('click', () => {
           socket.emit('player:leave');
@@ -213,10 +219,10 @@
           <div class="center fade-in">
             <div class="pill">${qNum}</div>
             ${q && q.image ? `<img class="qimg" src="${esc(q.image)}" alt="" />` : ''}
-            ${q && q.text ? `<div class="qtext" style="font-size:${q.image ? 20 : 24}px">${esc(q.text)}</div>` : '<h1 class="title-xl">Приготовьтесь!</h1>'}
+            ${q && q.text ? `<div class="qtext" style="font-size:${q.image ? 20 : 24}px">${esc(q.text)}</div>` : `<h1 class="title-xl">${tr('p.getReady')}</h1>`}
             <div class="bar" style="width:100%;max-width:320px"><i id="pbar"></i></div>
           </div>`;
-        stopTimer = countdown(s.remainingMs, 4000, (left, frac) => {
+        stopTimer = countdown(remaining, 4000, (left, frac) => {
           const el = $('#pbar');
           if (el) el.style.transform = `scaleX(${1 - frac})`;
         });
@@ -228,8 +234,8 @@
           app.innerHTML = `
             <div class="center fade-in">
               <div class="chosen">${answersMarkup({ ...q, answersCount: q.answersCount }, s.myAnswer).replace('p-answers', 'p-answers list')}</div>
-              <h1 class="title-xl">Ответ принят</h1>
-              <p class="muted" style="margin:0">Ждём остальных участников…</p>
+              <h1 class="title-xl">${tr('p.accepted')}</h1>
+              <p class="muted" style="margin:0">${tr('p.waitOthers')}</p>
               <div class="dots"><span></span><span></span><span></span></div>
             </div>`;
           // оставляем только выбранный вариант
@@ -242,11 +248,11 @@
           <div class="fade-in" style="display:flex;flex-direction:column;flex:1">
             <div class="qhead"><span class="pill">${s.qIndex + 1}/${s.qTotal}</span><div class="bar"><i id="tbar"></i></div><span class="sec" id="tsec"></span></div>
             ${q.image ? `<img class="qimg" src="${esc(q.image)}" alt="" />` : ''}
-            ${q.text ? `<div class="qtext">${esc(q.text)}</div>` : '<div class="qtext muted">Выберите ответ на экране ведущего</div>'}
+            ${q.text ? `<div class="qtext">${esc(q.text)}</div>` : `<div class="qtext muted">${tr('p.chooseOnScreen')}</div>`}
             ${answersMarkup(q, null)}
           </div>`;
-        let lastSec = Math.ceil(s.remainingMs / 1000);
-        stopTimer = countdown(s.remainingMs, total, (left, frac) => {
+        let lastSec = Math.ceil(remaining / 1000);
+        stopTimer = countdown(remaining, total, (left, frac) => {
           const bar = $('#tbar');
           const sec = $('#tsec');
           const whole = Math.ceil(left / 1000);
@@ -272,7 +278,7 @@
           const res = await emit(socket, 'player:answer', { index });
           sending = false;
           if (!res.ok) {
-            toast(res.error, true);
+            toast(errText(res), true);
             app.querySelectorAll('.ans').forEach((x) => x.classList.remove('dim'));
           }
         });
@@ -282,7 +288,7 @@
       case 'reveal': {
         const r = s.result;
         const kind = r.correct === true ? 'ok' : r.correct === false ? 'bad' : 'none';
-        const head = { ok: 'Верно!', bad: 'Неверно', none: 'Время вышло' }[kind];
+        const head = { ok: tr('p.correct'), bad: tr('p.wrong'), none: tr('p.timeUp') }[kind];
         const icon = { ok: ICONS.check, bad: ICONS.cross, none: ICONS.clock }[kind];
         app.innerHTML = `
           <div class="center">
@@ -290,9 +296,9 @@
               <div class="icon">${icon}</div>
               <h1 class="title-xl" style="margin-top:8px">${head}</h1>
               ${kind === 'ok' ? `<div class="pts">+${fmt(r.points)}</div>` : ''}
-              ${kind === 'ok' && r.streak >= 2 ? `<div style="margin-top:12px;font-weight:800">${ICONS.flame} Серия: ${r.streak} подряд</div>` : ''}
-              ${kind !== 'ok' && r.correctTexts.length && s.showOnDevices ? `<div style="margin-top:14px;font-weight:700">Правильно: ${r.correctTexts.map(esc).join(' / ')}</div>` : ''}
-              ${kind !== 'ok' && !s.showOnDevices ? `<div style="margin-top:14px;font-weight:700">Правильно: ${r.correctIndices.map((i) => LETTERS[i]).join(', ')}</div>` : ''}
+              ${kind === 'ok' && r.streak >= 2 ? `<div style="margin-top:12px;font-weight:800">${ICONS.flame} ${tr('p.streak', { n: r.streak })}</div>` : ''}
+              ${kind !== 'ok' && r.correctTexts.length && s.showOnDevices ? `<div style="margin-top:14px;font-weight:700">${tr('p.rightWas', { x: r.correctIndices.map((i) => esc(answerText(q, i))).join(' / ') })}</div>` : ''}
+              ${kind !== 'ok' && !s.showOnDevices ? `<div style="margin-top:14px;font-weight:700">${tr('p.rightWas', { x: r.correctIndices.map((i) => LETTERS[i]).join(', ') })}</div>` : ''}
             </div>
             <p style="font-size:17px">${rankLine(s)}</p>
           </div>`;
@@ -304,9 +310,9 @@
         app.innerHTML = `
           <div class="center fade-in">
             ${avatar(s.me.name, s.me.color, 'xl')}
-            <h1 class="title-xl">${s.me.rank} место</h1>
-            <p class="muted" style="margin:0">из ${s.me.total} участников · ${fmt(s.me.score)} очков</p>
-            ${s.result && s.result.aheadName ? `<p>До «${esc(s.result.aheadName)}» — ${fmt(s.result.gap)} очк.</p>` : s.me.rank === 1 ? '<p>Вы лидер!</p>' : ''}
+            <h1 class="title-xl">${tr('p.place', { rank: s.me.rank })}</h1>
+            <p class="muted" style="margin:0">${tr('p.ofPlayers', { total: s.me.total, score: fmt(s.me.score) })}</p>
+            ${s.result && s.result.aheadName ? `<p>${tr('p.toName', { name: esc(s.result.aheadName), gap: fmt(s.result.gap) })}</p>` : s.me.rank === 1 ? `<p>${tr('p.leader')}</p>` : ''}
             <div class="dots"><span></span><span></span><span></span></div>
           </div>`;
         break;
@@ -316,19 +322,19 @@
         const tl = podiumTimeline(Math.min(3, s.me.total));
         const step = tl.steps.find((x) => x.place === s.me.rank);
         const revealAt = step ? step.hitAt : tl.endAt - 1400;
-        const wait = revealAt - (s.elapsedMs || 0);
+        const wait = revealAt - elapsed;
         const showResult = (late) => {
           const rc = s.me.rank <= 3 ? `r${s.me.rank}` : 'rn';
           app.innerHTML = `
             <div class="center fade-in">
               <div class="rank-badge ${rc} bounce-in">${s.me.rank}</div>
-              <h1 class="title-xl">${s.me.rank === 1 ? 'Вы победили!' : `${s.me.rank} место из ${s.me.total}`}</h1>
-              <p style="margin:0;font-size:18px"><b>${fmt(s.me.score)}</b> очков</p>
-              <p class="muted" style="margin:0">Правильных ответов: ${s.result ? s.result.correctCount : 0} из ${s.qTotal}</p>
-              <button class="btn btn-primary" id="againBtn" style="margin-top:18px">Войти в другую игру</button>
+              <h1 class="title-xl">${s.me.rank === 1 ? tr('p.youWon') : tr('p.placeOf', { rank: s.me.rank, total: s.me.total })}</h1>
+              <p style="margin:0;font-size:18px"><b>${fmt(s.me.score)}</b> ${tr('p.ptsWord')}</p>
+              <p class="muted" style="margin:0">${tr('p.correctOf', { n: s.result ? s.result.correctCount : 0, total: s.qTotal })}</p>
+              <button class="btn btn-primary" id="againBtn" style="margin-top:18px">${tr('p.another')}</button>
             </div>`;
           if (!late) {
-            Sound.placeReveal(s.me.rank);
+            Sound.placeReveal(s.me.rank, s.winnerSound);
             if (navigator.vibrate) navigator.vibrate(s.me.rank <= 3 ? [60, 80, 60, 80, 120] : 80);
             if (s.me.rank <= 3) confetti(s.me.rank === 1 ? 6000 : 4000);
           }
@@ -343,8 +349,8 @@
           app.innerHTML = `
             <div class="center fade-in">
               <div class="drum-wait"><span></span><span></span><span></span></div>
-              <h1 class="title-xl">Объявляем победителей…</h1>
-              <p class="muted" style="margin:0">Смотрите на экран ведущего</p>
+              <h1 class="title-xl">${tr('p.announcing')}</h1>
+              <p class="muted" style="margin:0">${tr('p.watchScreen')}</p>
             </div>`;
           const tm = setTimeout(() => showResult(false), wait);
           stopTimer = () => clearTimeout(tm);
@@ -366,7 +372,7 @@
       <div class="center fade-in">
         <h1 class="title-xl">${esc(title)}</h1>
         <p class="muted">${esc(text)}</p>
-        <button class="btn btn-primary" id="homeBtn">На главную</button>
+        <button class="btn btn-primary" id="homeBtn">${tr('p.home')}</button>
       </div>`;
     $('#homeBtn').addEventListener('click', () => {
       history.replaceState(null, '', '/');
@@ -376,6 +382,7 @@
 
   socket.on('state', (s) => {
     if (s.role !== 'player') return;
+    s._recv = performance.now();
     screen = 'game';
     booting = false;
     render(s);
@@ -383,12 +390,30 @@
   socket.on('kicked', () => {
     const sess = loadSession();
     saveSession(sess ? { lastName: sess.lastName } : null);
-    renderMessage('Вас удалили из игры', 'Ведущий удалил вас из комнаты.');
+    renderMessage(tr('p.kickedT'), tr('p.kickedD'));
   });
   socket.on('room-closed', () => {
     const sess = loadSession();
     saveSession(sess ? { lastName: sess.lastName } : null);
-    renderMessage('Игра завершена', 'Ведущий закрыл комнату.');
+    renderMessage(tr('p.closedT'), tr('p.closedD'));
+  });
+
+  // Переключатель языка
+  I18N.mountSwitcher($('#langSw'));
+  I18N.onChange(() => {
+    I18N.mountSwitcher($('#langSw'));
+    if (state && screen === 'game') {
+      renderedKey = '';
+      render(state);
+    } else if (screen === 'pin') {
+      const input = $('#pinInput');
+      renderPin(input ? input.value : '');
+    } else if (screen === 'name') {
+      const ni = $('#nameInput');
+      const typed = ni ? ni.value : '';
+      renderName();
+      if (typed) $('#nameInput').value = typed;
+    }
   });
 
   // При (пере)подключении пытаемся вернуться в свою игру
@@ -412,7 +437,7 @@
     }
     saveSession({ lastName: sess.lastName });
     if (booting) fallbackToJoin();
-    else if (screen === 'game') renderMessage('Игра не найдена', 'Возможно, она уже закончилась.');
+    else if (screen === 'game') renderMessage(tr('p.notFoundT'), tr('p.notFoundD'));
   });
 
   // Старт: PIN из QR-ссылки ?pin=123456
