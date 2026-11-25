@@ -460,6 +460,20 @@
     const list = loadQuizzes();
     view.innerHTML = `
       <div class="page fade-in">
+        <section class="levels-wrap">
+          <h1 class="h">${tr('lv.section')}</h1>
+          <p class="muted" style="margin:8px 0 16px">${tr('lv.hint')}</p>
+          <div class="levels">
+            ${LEVELS.map((lv) => `
+              <article class="card level lv-${lv.key}" data-level="${lv.key}">
+                <div class="lv-dots">${[1, 2, 3, 4].map((d) => `<i class="${d <= lv.dots ? 'on' : ''}"></i>`).join('')}</div>
+                <h3>${tr('lv.' + lv.key)}</h3>
+                <div class="meta">${lv.key === 'mix' ? tr('lv.mixDesc') : tr('lv.fromBank', { n: BANK_SIZE })}</div>
+                ${lv.key === 'mix' ? '' : `<div class="meta">${tr('lv.left', { n: bankLeft(lv.key) })}</div>`}
+                <button class="btn btn-primary btn-sm" data-act="level">${ICONS.play} ${tr('h.play')}</button>
+              </article>`).join('')}
+          </div>
+        </section>
         <div class="lib-head">
           <div>
             <h1 class="h">${tr('h.myQuizzes')}</h1>
@@ -488,6 +502,19 @@
         <p class="muted" style="margin:18px 0 0;font-size:13px">${tr('h.credits')} <a href="/credits" style="color:var(--accent)">${tr('h.creditsLink')}</a></p>
       </div>`;
 
+    view.querySelectorAll('.level [data-act="level"]').forEach((b) =>
+      b.addEventListener('click', async () => {
+        const key = b.closest('.level').dataset.level;
+        b.disabled = true;
+        try {
+          openLaunch(await buildLevelQuiz(key));
+        } catch (e) {
+          toast(tr('lv.loadFail'), true);
+        } finally {
+          b.disabled = false;
+        }
+      })
+    );
     view.querySelectorAll('.quiz-card').forEach((card) => {
       card.addEventListener('click', (e) => {
         const b = e.target.closest('button[data-act]');
@@ -846,6 +873,100 @@
       renderQList();
       renderQPanel();
     });
+  }
+
+  // ---------------- Игра по уровню: случайные вопросы из баз (public/banks/*.js) ----------------
+
+  const BANK_SIZE = 100;
+  const LEVELS = [
+    { key: 'easy', dots: 1, time: 20 },
+    { key: 'medium', dots: 2, time: 20 },
+    { key: 'hard', dots: 3, time: 30 },
+    { key: 'promax', dots: 4, time: 30 },
+    { key: 'mix', dots: 0 },
+  ];
+  const LEVEL_TITLES = {
+    easy: { ru: 'Ислам: лёгкий уровень', kk: 'Ислам: жеңіл деңгей', uz: 'Islom: oson daraja' },
+    medium: { ru: 'Ислам: средний уровень', kk: 'Ислам: орта деңгей', uz: "Islom: o'rta daraja" },
+    hard: { ru: 'Ислам: сложный уровень', kk: 'Ислам: қиын деңгей', uz: 'Islom: qiyin daraja' },
+    promax: { ru: 'Ислам: уровень Про Макс', kk: 'Ислам: Про Макс деңгейі', uz: 'Islom: Pro Max darajasi' },
+    mix: { ru: 'Ислам: микс', kk: 'Ислам: аралас', uz: 'Islom: aralash' },
+  };
+  const usedKey = (bank) => `qp-used-${bank}`;
+  const bankLeft = (bank) => Math.max(0, BANK_SIZE - store.get(usedKey(bank), []).length);
+
+  function loadBank(name) {
+    if (window.QP_BANKS && window.QP_BANKS[name]) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const sc = document.createElement('script');
+      sc.src = `/banks/${name}.js`;
+      sc.onload = () => (window.QP_BANKS && window.QP_BANKS[name] ? resolve() : reject(new Error('empty bank')));
+      sc.onerror = reject;
+      document.head.appendChild(sc);
+    });
+  }
+  function shuffled(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  /** n случайных вопросов из базы; не повторяем, пока не пройдена вся база */
+  function pickFromBank(name, n) {
+    const bank = window.QP_BANKS[name];
+    let used = new Set(store.get(usedKey(name), []).filter((i) => i < bank.length));
+    let pool = bank.map((_, i) => i).filter((i) => !used.has(i));
+    if (pool.length < n) {
+      used = new Set();
+      pool = bank.map((_, i) => i);
+    }
+    const picked = shuffled(pool).slice(0, n);
+    picked.forEach((i) => used.add(i));
+    store.set(usedKey(name), [...used]);
+    return picked.map((i) => bank[i]);
+  }
+  /** Вопрос из базы → вопрос викторины (варианты перемешиваются, вместе с переводами) */
+  function bankToQuestion(e, time) {
+    const tf = e.t === 'truefalse';
+    const n = tf ? 2 : e.ru.a.length;
+    const perm = tf ? [0, 1] : shuffled([...Array(n).keys()]);
+    const pad = (arr) => [...arr, ...Array(4 - arr.length).fill('')];
+    const q = {
+      type: tf ? 'truefalse' : 'quiz',
+      text: e.ru.q,
+      answers: tf ? ['Верно', 'Неверно'] : pad(perm.map((i) => e.ru.a[i])),
+      correct: e.c.map((c) => perm.indexOf(c)),
+      timeLimit: time,
+      points: 1,
+      image: e.img ? `/img/photo/${e.img}.jpg` : '',
+      tr: {},
+    };
+    ['kk', 'uz'].forEach((l) => {
+      const t = e[l] || {};
+      q.tr[l] = { text: t.q || '', answers: !tf && t.a ? pad(perm.map((i) => t.a[i])) : ['', '', '', ''] };
+    });
+    return q;
+  }
+  async function buildLevelQuiz(key) {
+    let questions;
+    if (key === 'mix') {
+      await Promise.all(['easy', 'medium', 'hard'].map(loadBank));
+      // по нарастающей: 3 лёгких, 4 средних, 3 сложных
+      questions = [
+        ...pickFromBank('easy', 3).map((e) => bankToQuestion(e, 20)),
+        ...pickFromBank('medium', 4).map((e) => bankToQuestion(e, 20)),
+        ...pickFromBank('hard', 3).map((e) => bankToQuestion(e, 30)),
+      ];
+    } else {
+      await loadBank(key);
+      const lv = LEVELS.find((x) => x.key === key);
+      questions = pickFromBank(key, 10).map((e) => bankToQuestion(e, lv.time));
+    }
+    questions[questions.length - 1].points = 2; // последний вопрос — двойные очки
+    const T = LEVEL_TITLES[key];
+    return normalizeQuiz({ id: `level-${key}`, title: T.ru, lang: 'ru', tr: { kk: { title: T.kk }, uz: { title: T.uz } }, questions });
   }
 
   // ---------------- Галерея встроенных картинок ----------------

@@ -22,6 +22,19 @@
 
     /* Library */
     .lib-head { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
+    .levels-wrap { margin-bottom: 34px; }
+    .levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+    .level { padding: 18px; display: flex; flex-direction: column; gap: 8px; border-top: 4px solid var(--lv, var(--accent)); }
+    .level h3 { margin: 2px 0 0; font-family: var(--font-display); font-size: 20px; letter-spacing: -0.01em; }
+    .level .meta { color: var(--muted); font-size: 13px; font-weight: 700; }
+    .level .btn { margin-top: auto; align-self: flex-start; }
+    .lv-dots { display: flex; gap: 5px; min-height: 10px; }
+    .lv-dots i { width: 22px; height: 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); }
+    .lv-dots i.on { background: var(--lv, var(--accent)); }
+    .lv-easy { --lv: #5fe39b; } .lv-medium { --lv: #4fd1e8; } .lv-hard { --lv: #ffb457; } .lv-promax { --lv: #ff5a7a; }
+    .lv-mix { --lv: #c8ff3e; background: linear-gradient(160deg, rgba(200, 255, 62, 0.12), rgba(24, 34, 65, 0.78) 60%); }
+    @media (max-width: 1000px) { .levels { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 640px) { .levels { grid-template-columns: repeat(2, 1fr); } }
     .quiz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
     .quiz-card { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
     .quiz-card h3 { margin: 0; font-size: 19px; line-height: 1.25; }

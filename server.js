@@ -4,6 +4,7 @@ const http = require('http');
 const os = require('os');
 const path = require('path');
 const express = require('express');
+const compression = require('compression');
 const QRCode = require('qrcode');
 const { Server } = require('socket.io');
 const { GameManager, gameError } = require('./src/game');
@@ -30,6 +31,7 @@ function lanAddresses() {
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
 app.disable('x-powered-by');
+app.use(compression());
 app.use(express.static(PUBLIC_DIR, { extensions: ['html'] }));
 app.get(['/join', '/play'], (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
 
