@@ -83,6 +83,7 @@ io.on('connection', (socket) => {
       const g = games.create(payload && payload.quiz, payload && payload.settings);
       g.hostSocketId = socket.id;
       socket.data = { role: 'host', pin: g.pin };
+      if (payload && payload.lang) g.hostLang = ['ru', 'kk', 'uz'].includes(payload.lang) ? payload.lang : g.hostLang;
       ack({ ok: true, pin: g.pin, hostToken: g.hostToken });
       g.broadcastHost();
     } catch (e) {
@@ -97,9 +98,20 @@ io.on('connection', (socket) => {
     if (g.hostSocketId && g.hostSocketId !== socket.id) io.to(g.hostSocketId).emit('host-replaced');
     g.hostSocketId = socket.id;
     socket.data = { role: 'host', pin: g.pin };
+    if (payload && payload.lang && ['ru', 'kk', 'uz'].includes(payload.lang)) g.hostLang = payload.lang;
     g.touch();
     ack({ ok: true, pin: g.pin });
     g.broadcastHost();
+  });
+
+  socket.on('host:lang', (payload) => {
+    const g = hostGame();
+    if (g) g.setHostLang(payload && payload.lang);
+  });
+
+  socket.on('player:lang', (payload) => {
+    const ctx = playerCtx();
+    if (ctx) ctx.g.setPlayerLang(ctx.p.id, payload && payload.lang);
   });
 
   socket.on('host:action', (payload, ack) => {
@@ -144,7 +156,7 @@ io.on('connection', (socket) => {
     if (!g) return ack({ ok: false, code: 'pin_not_found', error: 'Игра с таким PIN не найдена' });
     if (g.locked) return ack({ ok: false, code: 'locked', error: 'Вход в игру закрыт ведущим' });
     if (g.phase === 'final') return ack({ ok: false, code: 'ended', error: 'Эта игра уже закончилась' });
-    ack({ ok: true, title: g.title, started: g.phase !== 'lobby' });
+    ack({ ok: true, title: g.titleFor(payload && payload.lang), started: g.phase !== 'lobby' });
   });
 
   socket.on('player:join', (payload, ack) => {
@@ -152,7 +164,7 @@ io.on('connection', (socket) => {
     const g = games.get(payload && payload.pin);
     if (!g) return fail(ack, gameError('pin_not_found', 'Игра с таким PIN не найдена'));
     try {
-      const p = g.addPlayer({ name: payload.name, socketId: socket.id });
+      const p = g.addPlayer({ name: payload.name, socketId: socket.id, lang: payload.lang });
       socket.data = { role: 'player', pin: g.pin, playerId: p.id };
       ack({ ok: true, token: p.token, playerId: p.id });
       g.emitToPlayer(p);
@@ -167,6 +179,7 @@ io.on('connection', (socket) => {
     const p = g && g.reconnectPlayer(String((payload && payload.token) || ''), socket.id);
     if (!p) return fail(ack, gameError('session_not_found', 'Сессия не найдена'));
     socket.data = { role: 'player', pin: g.pin, playerId: p.id };
+    if (payload && payload.lang && ['ru', 'kk', 'uz'].includes(payload.lang)) p.lang = payload.lang;
     ack({ ok: true, playerId: p.id });
     g.emitToPlayer(p);
   });

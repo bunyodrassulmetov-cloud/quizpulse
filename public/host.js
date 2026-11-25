@@ -44,6 +44,7 @@
 
   let mode = 'boot'; // boot | library | editor | game
   let quietRender = false;
+  let renderedLang = '';
   let game = null;
   let renderedKey = '';
   let stopTimer = null;
@@ -54,18 +55,30 @@
 
   function blankQuestion(type = 'quiz') {
     return type === 'truefalse'
-      ? { id: uid(), type, text: '', image: '', answers: ['Верно', 'Неверно'], correct: [0], timeLimit: 10, points: 1 }
-      : { id: uid(), type: 'quiz', text: '', image: '', answers: ['', '', '', ''], correct: [0], timeLimit: 20, points: 1 };
+      ? { id: uid(), type, text: '', image: '', answers: ['Верно', 'Неверно'], correct: [0], timeLimit: 10, points: 1, tr: {} }
+      : { id: uid(), type: 'quiz', text: '', image: '', answers: ['', '', '', ''], correct: [0], timeLimit: 20, points: 1, tr: {} };
   }
+
+  const CONTENT_LANGS = ['ru', 'kk', 'uz'];
 
   function normalizeQuiz(raw) {
     const q = raw && typeof raw === 'object' ? raw : {};
+    const qlang = CONTENT_LANGS.includes(q.lang) ? q.lang : 'ru';
     const questions = (Array.isArray(q.questions) ? q.questions : []).slice(0, 100).map((x) => {
       const type = x && x.type === 'truefalse' ? 'truefalse' : 'quiz';
       const base = blankQuestion(type);
       const answers = type === 'truefalse' ? base.answers : [0, 1, 2, 3].map((i) => String((x.answers && x.answers[i]) || '').slice(0, 120));
       let correct = Array.isArray(x.correct) ? x.correct : [x.correct];
       correct = correct.map(Number).filter((i) => Number.isInteger(i) && i >= 0 && i < answers.length);
+      // переводы текста и вариантов на другие языки
+      const qtr = {};
+      CONTENT_LANGS.filter((l) => l !== qlang).forEach((l) => {
+        const t = x.tr && x.tr[l];
+        if (!t || typeof t !== 'object') return;
+        const text = String(t.text || '').slice(0, 300);
+        const tans = [0, 1, 2, 3].map((i) => String((t.answers && t.answers[i]) || '').slice(0, 120));
+        if (text || tans.some(Boolean)) qtr[l] = { text, answers: tans };
+      });
       return {
         id: uid(),
         type,
@@ -75,9 +88,41 @@
         correct: correct.length ? [...new Set(correct)] : [0],
         timeLimit: TIMES.includes(Number(x.timeLimit)) ? Number(x.timeLimit) : base.timeLimit,
         points: [0, 1, 2].includes(Number(x.points)) ? Number(x.points) : 1,
+        tr: qtr,
       };
     });
-    return { id: q.id || uid(), title: String(q.title || tr('untitled')).slice(0, 120), questions, updatedAt: q.updatedAt || Date.now() };
+    const titleTr = {};
+    CONTENT_LANGS.filter((l) => l !== qlang).forEach((l) => {
+      const t = q.tr && q.tr[l] && String(q.tr[l].title || '').slice(0, 120);
+      if (t) titleTr[l] = { title: t };
+    });
+    return { id: q.id || uid(), title: String(q.title || tr('untitled')).slice(0, 120), lang: qlang, tr: titleTr, questions, updatedAt: q.updatedAt || Date.now() };
+  }
+
+  /** Название викторины и текст вопроса на нужном языке (запасной — основной язык) */
+  function quizTitle(quiz, l = I18N.lang) {
+    const t = l !== quiz.lang && quiz.tr && quiz.tr[l];
+    return (t && t.title) || quiz.title;
+  }
+  function qText(q, l, baseLang) {
+    const t = l !== baseLang && q.tr && q.tr[l];
+    return (t && t.text) || q.text;
+  }
+
+  /** Встроенные переводы (public/quiz-i18n.js) для встроенных викторин */
+  function withBuiltinTr(quiz) {
+    const T = (window.QP_QUIZ_I18N || {})[quiz.id];
+    if (!T) return quiz;
+    Object.entries(T).forEach(([l, data]) => {
+      if (l === quiz.lang) return;
+      quiz.tr[l] = { title: data.title };
+      quiz.questions.forEach((q, i) => {
+        const row = data.q[i];
+        if (!row) return;
+        q.tr[l] = { text: row[0], answers: row[1] ? [0, 1, 2, 3].map((k) => row[1][k] || '') : ['', '', '', ''] };
+      });
+    });
+    return quiz;
   }
 
   function demoQuiz() {
@@ -241,8 +286,27 @@
         }
       })
     );
+    // Переводы для уже сохранённых встроенных викторин (сопоставляем по тексту вопроса)
     BUILTIN.forEach((make) => {
-      const quiz = make();
+      const fresh = withBuiltinTr(make());
+      const stored = list.find((q) => q.id === fresh.id);
+      if (!stored) return;
+      const byText = new Map(fresh.questions.map((q) => [q.text, q.tr]));
+      if (!stored.tr || !Object.keys(stored.tr).length) {
+        if (stored.title === fresh.title) {
+          stored.tr = fresh.tr;
+          changed = true;
+        }
+      }
+      (stored.questions || []).forEach((x) => {
+        if ((!x.tr || !Object.keys(x.tr).length) && byText.has(x.text)) {
+          x.tr = byText.get(x.text);
+          changed = true;
+        }
+      });
+    });
+    BUILTIN.forEach((make) => {
+      const quiz = withBuiltinTr(make());
       if (seeded.has(quiz.id)) return;
       seeded.add(quiz.id);
       changed = true;
@@ -306,6 +370,8 @@
   function exportQuiz(quiz) {
     const data = {
       title: quiz.title,
+      lang: quiz.lang,
+      tr: quiz.tr,
       questions: quiz.questions.map(({ id, ...rest }) => rest),
     };
     download(`${fileSafe(quiz.title)}.json`, JSON.stringify(data, null, 2), 'application/json');
@@ -363,7 +429,7 @@
     $('#topbar').hidden = false;
     setTop('', [
       { label: tr('h.importJson'), onClick: () => importFile.click() },
-      { label: tr('h.create'), cls: 'btn-primary', onClick: () => openEditor(normalizeQuiz({ title: '', questions: [blankQuestion()] }), true) },
+      { label: tr('h.create'), cls: 'btn-primary', onClick: () => openEditor(normalizeQuiz({ title: '', lang: I18N.lang, questions: [blankQuestion()] }), true) },
     ]);
     const list = loadQuizzes();
     view.innerHTML = `
@@ -378,7 +444,7 @@
           ${list.map((q) => `
             <article class="card quiz-card" data-id="${esc(q.id)}">
               <div class="meta">${tr('nQuestions', { n: q.questions.length })}${q.questions.some((x) => x.image) ? ` · ${tr('h.withImages', { n: q.questions.filter((x) => x.image).length })}` : ''}</div>
-              <h3>${esc(q.title || tr('untitled'))}</h3>
+              <h3>${esc(quizTitle(q) || tr('untitled'))}</h3>
               <div class="actions">
                 <button class="btn btn-primary btn-sm" data-act="play">${ICONS.play} ${tr('h.play')}</button>
                 <button class="btn btn-sm" data-act="edit">${tr('h.edit')}</button>
@@ -445,8 +511,20 @@
   let dirty = false;
   let errorSet = new Set();
 
+  let editLang = 'ru'; // язык, на котором сейчас редактируются тексты
+  const isBase = () => editLang === draft.lang;
+  /** Перевод вопроса на язык editLang (создаётся при первом вводе) */
+  function trSlot(q) {
+    if (!q.tr) q.tr = {};
+    if (!q.tr[editLang]) q.tr[editLang] = { text: '', answers: ['', '', '', ''] };
+    return q.tr[editLang];
+  }
+  const trOf = (q) => (q.tr && q.tr[editLang]) || null;
+
   function openEditor(quiz, isNew = false, focusQ = 0) {
     draft = JSON.parse(JSON.stringify(quiz));
+    draft.tr = draft.tr || {};
+    editLang = I18N.lang;
     if (!draft.questions.length) draft.questions.push(blankQuestion());
     sel = Math.max(0, Math.min(focusQ, draft.questions.length - 1));
     dirty = isNew;
@@ -497,9 +575,14 @@
     ]);
     view.innerHTML = `
       <div class="page fade-in">
+        <div class="row" style="flex-wrap:wrap;gap:10px;margin-bottom:12px">
+          <span class="label" style="margin:0">${tr('h.contentLang')}</span>
+          <div class="lang-sw" id="contentLang">${I18N.LANGS.map((l) => `<button type="button" data-cl="${l.code}" class="${l.code === editLang ? 'on' : ''}" title="${esc(l.name)}${l.code === draft.lang ? ' — ' + tr('h.baseLang') : ''}">${l.short}${l.code === draft.lang ? ' •' : ''}</button>`).join('')}</div>
+          <span class="muted" style="font-size:13px">${isBase() ? tr('h.baseHint') : tr('h.trHint')}</span>
+        </div>
         <div style="margin-bottom:18px">
           <label class="label" for="quizTitle">${tr('h.quizName')}</label>
-          <input class="input" id="quizTitle" maxlength="120" placeholder="${tr('h.quizNamePh')}" value="${esc(draft.title)}" style="font-size:22px;font-weight:800" />
+          <input class="input" id="quizTitle" maxlength="120" placeholder="${esc(isBase() ? tr('h.quizNamePh') : draft.title)}" value="${esc(isBase() ? draft.title : (draft.tr[editLang] && draft.tr[editLang].title) || '')}" style="font-size:22px;font-weight:800" />
         </div>
         <div class="ed">
           <aside class="card qlist" id="qlist"></aside>
@@ -508,8 +591,16 @@
       </div>`;
     const t = $('#quizTitle');
     t.addEventListener('input', () => {
-      draft.title = t.value;
+      if (isBase()) draft.title = t.value;
+      else if (t.value.trim()) draft.tr[editLang] = { title: t.value };
+      else delete draft.tr[editLang];
       dirty = true;
+    });
+    $('#contentLang').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-cl]');
+      if (!b || b.dataset.cl === editLang) return;
+      editLang = b.dataset.cl;
+      renderEditor();
     });
     if (!draft.title) t.focus();
     renderQList();
@@ -523,7 +614,7 @@
       ${draft.questions.map((q, i) => `
         <button class="qitem ${i === sel ? 'on' : ''} ${errorSet.has(i) ? 'err' : ''}" data-i="${i}">
           <span class="n">${i + 1}</span>
-          <span class="t ${q.text ? '' : 'ph'}">${esc(q.text || tr('h.newQ'))}</span>
+          <span class="t ${(isBase() ? q.text : trOf(q) && trOf(q).text) ? '' : 'ph'}">${esc(qText(q, editLang, draft.lang) || tr('h.newQ'))}</span>
           <span class="muted" style="font-size:12px">${q.type === 'truefalse' ? tr('h.tfShort') : tr('h.secShort', { n: q.timeLimit })}</span>
         </button>`).join('')}
       <div style="display:grid;gap:8px;margin-top:6px">
@@ -554,8 +645,8 @@
     const item = $(`#qlist .qitem[data-i="${sel}"] .t`);
     const q = draft.questions[sel];
     if (item) {
-      item.textContent = q.text || tr('h.newQ');
-      item.classList.toggle('ph', !q.text);
+      item.textContent = qText(q, editLang, draft.lang) || tr('h.newQ');
+      item.classList.toggle('ph', !(isBase() ? q.text : trOf(q) && trOf(q).text));
     }
   }
 
@@ -577,7 +668,7 @@
       </div>
       <div>
         <label class="label" for="qText">${tr('h.qText')}</label>
-        <textarea class="textarea" id="qText" maxlength="300" placeholder="${tr('h.qTextPh')}" style="font-size:20px;font-weight:700">${esc(q.text)}</textarea>
+        <textarea class="textarea" id="qText" maxlength="300" placeholder="${esc(isBase() ? tr('h.qTextPh') : q.text || tr('h.qTextPh'))}" style="font-size:20px;font-weight:700">${esc(isBase() ? q.text : (trOf(q) && trOf(q).text) || '')}</textarea>
       </div>
       <div class="opts">
         <div>
@@ -606,7 +697,7 @@
           ${q.answers.map((a, i) => `
             <div class="ans a${i}">
               <span class="letter">${LETTERS[i]}</span>
-              <input data-ai="${i}" maxlength="120" value="${esc(tf ? answerText(q, i) : a)}" placeholder="${i < 2 ? tr('h.ansPh') : tr('h.optional')}" ${tf ? 'readonly' : ''} />
+              <input data-ai="${i}" maxlength="120" value="${esc(tf ? answerText(q, i) : isBase() ? a : (trOf(q) && trOf(q).answers[i]) || '')}" placeholder="${esc(!isBase() && a ? a : i < 2 ? tr('h.ansPh') : tr('h.optional'))}" ${tf ? 'readonly' : ''} />
               <button class="ok-toggle ${q.correct.includes(i) ? 'on' : ''}" data-ci="${i}" title="${tr('h.correctAns')}" aria-pressed="${q.correct.includes(i)}">✓</button>
             </div>`).join('')}
         </div>
@@ -624,7 +715,8 @@
     const touch = () => (dirty = true);
     const ta = $('#qText');
     ta.addEventListener('input', () => {
-      q.text = ta.value;
+      if (isBase()) q.text = ta.value;
+      else trSlot(q).text = ta.value;
       touch();
       updateListItem();
     });
@@ -634,6 +726,7 @@
       nq.text = q.text;
       nq.image = q.image;
       nq.points = q.points;
+      nq.tr = Object.fromEntries(Object.entries(q.tr || {}).map(([l, x]) => [l, { text: x.text || '', answers: ['', '', '', ''] }]));
       draft.questions[sel] = nq;
       touch();
       renderQList();
@@ -651,7 +744,8 @@
     $('#ansEdit').addEventListener('input', (e) => {
       const i = e.target.dataset.ai;
       if (i == null) return;
-      q.answers[Number(i)] = e.target.value;
+      if (isBase()) q.answers[Number(i)] = e.target.value;
+      else trSlot(q).answers[Number(i)] = e.target.value;
       touch();
     });
     $('#ansEdit').addEventListener('click', (e) => {
@@ -769,7 +863,7 @@
     back.innerHTML = `
       <div class="card modal bounce-in" role="dialog" aria-modal="true" aria-labelledby="lt">
         <h2 id="lt">${tr('h.launch')}</h2>
-        <p class="muted" style="margin:0 0 20px">«${esc(quiz.title)}» · ${tr('nQuestions', { n: quiz.questions.length })}</p>
+        <p class="muted" style="margin:0 0 20px">«${esc(quizTitle(quiz))}» · ${tr('nQuestions', { n: quiz.questions.length })}</p>
         <div style="display:grid;gap:16px">
           <label class="switch"><input type="checkbox" id="optShow" checked /><span class="track"></span>
             <span><b>${tr('h.showOnPhones')}</b><br /><span class="muted" style="font-size:14px">${tr('h.showOnPhonesD')}</span></span></label>
@@ -792,7 +886,8 @@
     $('#lGo', back).addEventListener('click', async (e) => {
       e.target.disabled = true;
       const payload = {
-        quiz: { title: quiz.title, questions: quiz.questions.map(({ id, ...q }) => q) },
+        lang: I18N.lang,
+        quiz: { title: quiz.title, lang: quiz.lang, tr: quiz.tr, questions: quiz.questions.map(({ id, ...q }) => q) },
         settings: { showOnDevices: $('#optShow', back).checked, shuffleQuestions: $('#optShuffle', back).checked, winnerSound: $('#optWinner', back).value },
       };
       const res = await emit(socket, 'host:create', payload);
@@ -877,13 +972,15 @@
     const key = `${s.phase}|${s.qIndex}`;
     const tp = $('#topPlayers');
     if (tp) tp.textContent = s.players.length;
-    if (key === renderedKey) return partialUpdate(s);
+    const langOnly = key === renderedKey && !!s.lang && !!renderedLang && s.lang !== renderedLang;
+    if (key === renderedKey && !langOnly) return partialUpdate(s);
+    renderedLang = s.lang;
     const prevPhase = (renderedKey || '').split('|')[0];
     renderedKey = key;
     if (stopTimer) stopTimer();
     stopTimer = null;
     gameTop(s);
-    if (quietRender) Sound.ambience(s.phase === 'lobby');
+    if (quietRender || langOnly) Sound.ambience(s.phase === 'lobby');
     else phaseSound(s, prevPhase);
     const age = performance.now() - (s._recv || performance.now());
     const remaining = Math.max(0, (s.remainingMs || 0) - age);
@@ -1256,8 +1353,11 @@
     I18N.mountSwitcher($('#langSw'));
     document.title = tr('h.pageTitle');
     if (mode === 'library') renderLibrary();
-    else if (mode === 'editor') renderEditor();
-    else if (mode === 'game' && game) {
+    else if (mode === 'editor') {
+      editLang = I18N.lang;
+      renderEditor();
+    } else if (mode === 'game' && game) {
+      socket.emit('host:lang', { lang: I18N.lang });
       quietRender = true;
       renderedKey = '';
       try {
@@ -1295,7 +1395,7 @@
       if (mode === 'boot') renderLibrary();
       return;
     }
-    const res = await emit(socket, 'host:rejoin', sess);
+    const res = await emit(socket, 'host:rejoin', { ...sess, lang: I18N.lang });
     if (res.ok) {
       if (mode === 'boot' || mode === 'game') {
         mode = 'game';

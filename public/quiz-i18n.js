@@ -1,0 +1,250 @@
+/*
+ * Переводы встроенных викторин на казахский (kk) и узбекский (uz).
+ * Порядок вопросов совпадает с русским оригиналом в host.js.
+ * Формат вопроса: [текст, [варианты]] — null вместо вариантов значит «как в оригинале»
+ * (числа, «Верно/Неверно» переводятся интерфейсом).
+ */
+window.QP_QUIZ_I18N = {
+  'islam-photo-1': {
+    kk: {
+      title: 'Ислам фотосуреттерде',
+      q: [
+        ['Мұсылмандар намазда бет бұратын бұл қасиетті ғимарат қалай аталады?', ['Қағба', 'Құббат ас-Сахра', 'Құба мешіті', 'Мәсжид ән-Нәбәуи']],
+        ['Иерусалимдегі алтын күмбезді бұл ғимарат қалай аталады?', ['Әл-Ақса мешіті', 'Құббат ас-Сахра', 'Көк мешіт', 'Құба мешіті']],
+        ['Мұны тоқыған жәндіктің атымен қай сүре аталған?', ['Нәмл', 'Анкабут', 'Нахл', 'Фил']],
+        ['Қай сүре осы жануардың атымен аталған?', ['Бақара', 'Әнғам', 'Фил', 'Ғадият']],
+        ['Осы таудағы үңгірде Пайғамбарға ﷺ алғашқы уахи түсті. Тау қалай аталады?', ['Ұхуд', 'Нұр тауы', 'Арафат', 'Синай']],
+        ['Қай сүре осы жәндіктің атымен аталған?', ['Нахл', 'Нәмл', 'Анкабут', 'Хадид']],
+        ['Қажылар қажылықтың басты күнінде осында тұрады. Бұл жер қалай аталады?', ['Мина', 'Мүздәлифа', 'Арафат', 'Сафа']],
+        ['Меккедегі қасиетті су көзі қалай аталады?', ['Зәмзәм', 'Кәусар', 'Сәлсәбил', 'Тәсним']],
+        ['Бұл — Пайғамбар ﷺ салған алғашқы мешіт. Ол қалай аталады?', ['Мәсжид әл-Харам', 'Құба мешіті', 'Мәсжид әл-Қыблатайн', 'Әл-Ақса мешіті']],
+        ['Пайғамбар ﷺ тісін осы таяқшамен тазалаған. Ол қалай аталады?', ['Тәсбих', 'Мисуак', 'Қалам', 'Аса']],
+        ['Құранның ең ұзын сүресі осы жануардың атымен аталған. Ол қалай аталады?', ['Бақара', 'Әнғам', 'Фил', 'Нахл']],
+        ['Жаңа айдың (хилалдың) көрінуі мынаның басталуын білдіреді:', ['ислам күнтізбесіндегі жаңа айдың', 'жұма намазының', 'қажылықтың', 'жаңа күн жылының']],
+      ],
+    },
+    uz: {
+      title: 'Islom fotosuratlarda',
+      q: [
+        ["Musulmonlar namozda yuzlanadigan bu muqaddas bino qanday ataladi?", ["Ka'ba", 'Qubbat as-Saxro', 'Quba masjidi', 'Masjid an-Nabaviy']],
+        ["Quddusdagi oltin gumbazli bu bino qanday ataladi?", ['Al-Aqso masjidi', 'Qubbat as-Saxro', "Ko'k masjid", 'Quba masjidi']],
+        ["Buni to'qigan jonzot nomi bilan qaysi sura atalgan?", ['Naml', 'Ankabut', 'Nahl', 'Fil']],
+        ['Qaysi sura shu hayvon nomi bilan atalgan?', ['Baqara', "An'om", 'Fil', 'Odiyot']],
+        ["Shu tog'dagi g'orda Payg'ambarimizga ﷺ ilk vahiy nozil bo'lgan. Tog' qanday ataladi?", ['Uhud', "Nur tog'i", 'Arafot', 'Sinay']],
+        ['Qaysi sura shu hasharot nomi bilan atalgan?', ['Nahl', 'Naml', 'Ankabut', 'Hadid']],
+        ['Hojilar hajning asosiy kunida shu yerda turishadi. Bu joy qanday ataladi?', ['Mino', 'Muzdalifa', 'Arafot', 'Safo']],
+        ['Makkadagi muborak suv manbai qanday ataladi?', ['Zamzam', 'Kavsar', 'Salsabil', 'Tasnim']],
+        ["Bu — Payg'ambarimiz ﷺ qurgan birinchi masjid. U qanday ataladi?", ['Masjid al-Harom', 'Quba masjidi', 'Masjid al-Qiblatayn', 'Al-Aqso masjidi']],
+        ["Payg'ambarimiz ﷺ tishlarini shu cho'p bilan tozalaganlar. U qanday ataladi?", ['Tasbeh', 'Misvok', 'Qalam', 'Aso']],
+        ["Qur'onning eng uzun surasi shu hayvon nomi bilan atalgan. U qanday ataladi?", ['Baqara', "An'om", 'Fil', 'Nahl']],
+        ["Yangi oyning (hilolning) ko'rinishi nimaning boshlanishini bildiradi?", ['Islomiy taqvimdagi yangi oyning', 'Juma namozining', 'Hajning', 'Yangi quyosh yilining']],
+      ],
+    },
+  },
+
+  'sira-1': {
+    kk: {
+      title: 'Пайғамбар ﷺ өмірбаяны',
+      q: [
+        ['Пайғамбар Мұхаммедтің ﷺ анасының есімі кім еді?', ['Халима', 'Әмина', 'Хадиша', 'Фатима']],
+        ['Пайғамбар ﷺ ауыз ашарды ең алдымен немен ашуға кеңес берген?', ['Балмен', 'Сүтпен', 'Құрмамен', 'Нанмен']],
+        ['Пайғамбардың ﷺ ерте балалық шағы шөлде өткен, Бәну Сағд тайпасынан шыққан сүт анасының есімі кім?', ['Халима әс-Сағдия', 'Сұмайя', 'Әсма', 'Фатима']],
+        ['Мұсылмандар Мединені айнала осындай орды кімнің кеңесімен қазды?', ['Әбу Бәкір әс-Сыддықтың', 'Омар ибн әл-Хаттабтың', 'Салман әл-Фарисидің', 'Әли ибн Әбу Талибтың']],
+        ['Әйелдерден Исламды бірінші болып кім қабылдады?', ['Айша', 'Хадиша', 'Фатима', 'Сұмайя']],
+        ['Алғашқы уахи түскенде Пайғамбар ﷺ неше жаста еді?', null],
+        ['Пайғамбардың ﷺ мөрлі жүзігіне қандай жазу ойылған?', ['«Ля иләһә иллаллаһ»', '«Мұхаммед Расулуллаһ»', '«Бисмиллаһ»', '«Аллаһу әкбар»']],
+        ['Хадиша мен Әбу Талиб қайтыс болған жыл қалай аталады?', ['Піл жылы', 'Қайғы жылы', 'Елшілер жылы', 'Жеңіс жылы']],
+        ['Бұл мешіт — Пайғамбар ﷺ мешіті — қай қалада орналасқан?', ['Мекке', 'Медине', 'Иерусалим', 'Таиф']],
+        ['Пайғамбар ﷺ Меккеде жерленген.', null],
+      ],
+    },
+    uz: {
+      title: "Payg'ambar ﷺ siyrati",
+      q: [
+        ["Payg'ambarimiz Muhammad ﷺ onalarining ismi nima edi?", ['Halima', 'Omina', 'Xadicha', 'Fotima']],
+        ["Payg'ambarimiz ﷺ og'iz ochishni birinchi navbatda nima bilan qilishni tavsiya qilganlar?", ['Asal bilan', 'Sut bilan', 'Xurmo bilan', 'Non bilan']],
+        ["Payg'ambarimiz ﷺ go'daklik chog'larini sahroda o'tkazgan, Bani Sa'd qabilasidan bo'lgan emizuvchi onalarining ismi nima?", ["Halima as-Sa'diya", 'Sumayya', 'Asmo', 'Fotima']],
+        ['Musulmonlar Madina atrofida bunday xandaqni kimning maslahati bilan qazishgan?', ['Abu Bakr Siddiqning', 'Umar ibn Xattobning', 'Salmon Forsiyning', 'Ali ibn Abu Tolibning']],
+        ["Ayollar orasida birinchi bo'lib kim Islomni qabul qilgan?", ['Oisha', 'Xadicha', 'Fotima', 'Sumayya']],
+        ["Birinchi vahiy nozil bo'lganda Payg'ambarimiz ﷺ necha yoshda edilar?", null],
+        ["Payg'ambarimiz ﷺ muhr-uzuklariga qanday yozuv o'yilgan edi?", ['«La ilaha illalloh»', '«Muhammad Rasululloh»', '«Bismilloh»', '«Allohu akbar»']],
+        ['Xadicha va Abu Tolib vafot etgan yil qanday ataladi?', ['Fil yili', "Qayg'u yili", 'Elchilar yili', "G'alaba yili"]],
+        ["Bu masjid — Payg'ambar ﷺ masjidi — qaysi shaharda joylashgan?", ['Makka', 'Madina', 'Quddus', 'Toif']],
+        ["Payg'ambarimiz ﷺ Makkada dafn etilganlar.", null],
+      ],
+    },
+  },
+
+  'tawhid-1': {
+    kk: {
+      title: 'Тәухид — Аллаһтың бірлігі',
+      q: [
+        ['Қай пайғамбар жұлдызды, айды және күнді бақылап, өз қауымына тек Жаратушыға ғана құлшылық ету керектігін дәлелдеді?', ['Нұх', 'Ибраһим', 'Мұса', 'Һуд']],
+        ['«Ля иләһә иллаллаһ» сөздерінің мағынасы қандай?', ['Аллаһтан басқа құлшылыққа лайық тәңір жоқ', 'Аллаһ ұлы', 'Аллаһ пәк', 'Аллаһтан басқа күш пен қуат жоқ']],
+        ['Аллаһқа серік қосу қалай аталады?', ['Нифақ', 'Ширк', 'Бидғат', 'Риба']],
+        ['Құран бойынша, қандай жағдайда тіпті мүшріктер де шын ниетпен тек Аллаһқа жалбарынған?', ['Кемеде дауыл кезінде', 'Мереке кезінде', 'Үй салу кезінде', 'Сауда кезінде']],
+        ['Қай сүре толықтай тәухидке арналған және хадис бойынша Құранның үштен біріне тең?', ['Фатиха', 'Ихлас', 'Кафирун', 'Нас']],
+        ['Пайғамбар ﷺ Аллаһ Кітабындағы ең ұлы аят деп қай аятты атаған?', ['Әл-Күрси аяты', 'Фатиха сүресінің бірінші аяты', 'Бақара сүресінің соңғы аяты', 'Нұр туралы аят']],
+        ['«Қиямет» сүресінде Аллаһ нені де дәл қалпына келтіруге құдіретті екені айтылған?', ['шашты', 'саусақ ұштарын', 'кірпікті', 'дауысты']],
+        ['Хадисте Аллаһтың неше есімі аталған: «Аллаһтың … есімі бар, кім оларды санап шықса, жәннатқа кіреді»?', null],
+        ['Өлі жерді жаңбырмен тірілтуді Құран неге дәлел ретінде келтіреді?', ['күн мен түннің ауысуына', 'өлгеннен кейін қайта тірілуге', 'жұлдыздардың қозғалысына', 'Қағбаның салынуына']],
+        ['Адам Аллаһтың есімдерін өз пікірімен ойлап таба алады.', null],
+      ],
+    },
+    uz: {
+      title: 'Tavhid — Allohning yagonaligi',
+      q: [
+        ["Qaysi payg'ambar yulduz, oy va quyoshni kuzatib, qavmiga faqat Yaratuvchiga ibodat qilish kerakligini isbotlagan?", ['Nuh', 'Ibrohim', 'Muso', 'Hud']],
+        ['«La ilaha illalloh» so\'zlarining ma\'nosi nima?', ["Allohdan o'zga ibodatga loyiq iloh yo'q", 'Alloh buyuk', 'Alloh pokdir', "Allohdan boshqa kuch-quvvat yo'q"]],
+        ["Allohga sherik qo'shish qanday ataladi?", ['Nifoq', 'Shirk', "Bid'at", 'Ribo']],
+        ["Qur'onga ko'ra, qaysi holatda hatto mushriklar ham chin dildan faqat Allohga iltijo qilishgan?", ["Kemada bo'ron paytida", 'Bayram paytida', 'Uy qurish paytida', 'Savdo paytida']],
+        ["Qaysi sura butunlay tavhidga bag'ishlangan va hadisga ko'ra Qur'onning uchdan biriga teng?", ['Fotiha', 'Ixlos', 'Kofirun', 'Nos']],
+        ["Payg'ambarimiz ﷺ Alloh Kitobidagi eng ulug' oyat deb qaysi oyatni aytganlar?", ['Oyatal Kursiy', 'Fotiha surasining birinchi oyati', 'Baqara surasining oxirgi oyati', 'Nur oyati']],
+        ['«Qiyomat» surasida Alloh hatto nimani ham aynan tiklashga qodir ekani aytilgan?', ['sochni', 'barmoq uchlarini', 'kipriklarni', 'ovozni']],
+        ['Hadisda Allohning nechta ismi aytilgan: «Allohning … ismi bor, kim ularni sanab chiqsa, jannatga kiradi»?', null],
+        ["O'lik yerni yomg'ir bilan tiriltirishni Qur'on nimaga dalil qilib keltiradi?", ['kecha va kunduzning almashinuviga', "o'limdan keyin qayta tirilishga", 'yulduzlarning harakatiga', "Ka'baning qurilishiga"]],
+        ["Inson Allohning ismlarini o'z fikricha o'ylab topishi mumkin.", null],
+      ],
+    },
+  },
+
+  'quran-suras-1': {
+    kk: {
+      title: 'Құран және сүрелер',
+      q: [
+        ['Бұл сурет қай сүремен байланысты?', ['Ихлас', 'Аср', 'Кәусар', 'Наср']],
+        ['Әл-Күрси аяты қай сүреде?', ['Бақара', 'Әли Имран', 'Ниса', 'Мәида']],
+        ['Қай сүре осы суреттегі жемістің атымен аталған?', ['Рахман', 'Уақиға', 'Тин', 'Мәида']],
+        ['Қай сүре «Кітаптың анасы» (Үммул-Кітаб) деп аталады?', ['Фатиха', 'Ихлас', 'Ясин', 'Мүлк']],
+        ['Қай сүре осы суреттегі заттың атымен аталған?', ['Мүлк', 'Қалам', 'Хаққа', 'Мүззәммил']],
+        ['«Бисмилләһир-рахманир-рахим» қай сүреде екі рет кездеседі?', ['Нәмл', 'Бақара', 'Тәубе', 'Юсуф']],
+        ['Қай сүре осы суреттегі металдың атымен аталған?', ['Зухруф', 'Хадид', 'Хашр', 'Ахзаб']],
+        ['Қай сүре әйел адамның есімімен аталған?', ['Мәриям', 'Ниса', 'Мүжәдәлә', 'Мүмтахана']],
+        ['Қай сүре осы аспан шырағымен ант етуден басталады?', ['Қамар', 'Нәжм', 'Ләйл', 'Шәмс']],
+        ['Құранда қай пайғамбардың есімі ең жиі аталады?', ['Ибраһим', 'Мұса', 'Иса', 'Нұх']],
+        ['«Раббыларыңның қай нығметін өтірік санайсыңдар?» аяты қай сүреде 31 рет қайталанады?', ['Уақиға', 'Ясин', 'Рахман', 'Мүлк']],
+        ['Құран Рамазан айында түсе бастады.', null],
+      ],
+    },
+    uz: {
+      title: "Qur'on va suralar",
+      q: [
+        ["Bu rasm qaysi sura bilan bog'liq?", ['Ixlos', 'Asr', 'Kavsar', 'Nasr']],
+        ['Oyatal Kursiy qaysi surada joylashgan?', ['Baqara', 'Oli Imron', 'Niso', 'Moida']],
+        ['Qaysi sura shu rasmdagi meva nomi bilan atalgan?', ['Rahmon', 'Voqea', 'Tin', 'Moida']],
+        ['Qaysi sura «Kitobning onasi» (Ummul Kitob) deb ataladi?', ['Fotiha', 'Ixlos', 'Yosin', 'Mulk']],
+        ['Qaysi sura shu rasmdagi narsa nomi bilan atalgan?', ['Mulk', 'Qalam', 'Haqqa', 'Muzzammil']],
+        ['«Bismillahir rohmanir rohim» qaysi surada ikki marta keladi?', ['Naml', 'Baqara', 'Tavba', 'Yusuf']],
+        ['Qaysi sura shu rasmdagi metall nomi bilan atalgan?', ['Zuxruf', 'Hadid', 'Hashr', 'Ahzob']],
+        ['Qaysi sura ayol kishining ismi bilan atalgan?', ['Maryam', 'Niso', 'Mujodala', 'Mumtahana']],
+        ['Qaysi sura shu yoritqich bilan qasam ichish bilan boshlanadi?', ['Qamar', 'Najm', 'Layl', 'Shams']],
+        ["Qur'onda qaysi payg'ambarning ismi eng ko'p zikr qilingan?", ['Ibrohim', 'Muso', 'Iso', 'Nuh']],
+        ["«Robbingizning qaysi ne'matini yolg'on deysiz?» oyati qaysi surada 31 marta takrorlanadi?", ['Voqea', 'Yosin', 'Rahmon', 'Mulk']],
+        ["Qur'on Ramazon oyida nozil bo'la boshlagan.", null],
+      ],
+    },
+  },
+
+  'world-1': {
+    kk: {
+      title: 'Ғажайып әлем: жұмбақтар мен деректер',
+      q: [
+        ['Ежелгі Мысыр қабірлерінен табылған бұл өнім археологтарды немен таң қалдырды?', ['Мыңдаған жылдан кейін де жеуге жарамды болды', 'Тасқа айналды', 'Қараңғыда жарқырады', 'Тұзды болып кетті']],
+        ['Дүниежүзілік мұхиттың ең терең жері қалай аталады?', ['Бермуд үшбұрышы', 'Мариана шұңғымасы', 'Өлі теңіз', 'Байкал көлі']],
+        ['Мұхит түбіндегі етегінен өлшесе, бұл тау Эвересттен биік. Ол қайда орналасқан?', ['Исландия', 'Гавайи', 'Жапония', 'Жаңа Зеландия']],
+        ['Ересек адамның қаңқасында неше сүйек бар?', null],
+        ['Күннің жарығы Жерге шамамен қанша уақытта жетеді?', ['8 секунд', '8 минут', '8 сағат', '8 күн']],
+        ['Қай мүше дене салмағының шамамен 2%-ын құраса да, бүкіл энергияның шамамен 20%-ын жұмсайды?', ['Жүрек', 'Ми', 'Бауыр', 'Асқазан']],
+        ['Бұл ғаламшарда Күн батыстан шығады, ал тәулік жылдан ұзақ. Бұл қай ғаламшар?', ['Марс', 'Шолпан (Венера)', 'Меркурий', 'Юпитер']],
+        ['Жер бетінің қанша бөлігін су алып жатыр?', ['Шамамен 51%', 'Шамамен 61%', 'Шамамен 71%', 'Шамамен 81%']],
+        ['Ұлы Қытай қорғанын Айдан жай көзбен көруге болады.', null],
+        ['Қай табиғи материал ең қатты?', ['Гранит', 'Алмаз', 'Темір', 'Кварц']],
+      ],
+    },
+    uz: {
+      title: 'Ajoyib dunyo: jumboqlar va faktlar',
+      q: [
+        ['Qadimgi Misr maqbaralaridan topilgan bu mahsulot arxeologlarni nimasi bilan hayratga solgan?', ["Ming yillardan keyin ham iste'molga yaroqli bo'lgan", 'Toshga aylangan', "Qorong'ida yorug'lik chiqargan", "Sho'r bo'lib qolgan"]],
+        ['Dunyo okeanining eng chuqur joyi qanday ataladi?', ['Bermud uchburchagi', "Mariana botig'i", "O'lik dengiz", "Baykal ko'li"]],
+        ["Okean tubidagi etagidan o'lchansa, bu tog' Everestdan baland. U qayerda joylashgan?", ['Islandiya', 'Gavayi', 'Yaponiya', 'Yangi Zelandiya']],
+        ['Katta yoshli odam skeletida nechta suyak bor?', null],
+        ['Quyosh nuri Yerga taxminan qancha vaqtda yetib keladi?', ['8 soniya', '8 daqiqa', '8 soat', '8 kun']],
+        ["Qaysi a'zo tana vaznining taxminan 2 foizini tashkil etsa-da, butun energiyaning taxminan 20 foizini sarflaydi?", ['Yurak', 'Miya', 'Jigar', 'Oshqozon']],
+        ["Bu sayyorada Quyosh g'arbdan chiqadi, sutka esa yildan uzun. Bu qaysi sayyora?", ['Mars', 'Zuhro (Venera)', 'Merkuriy', 'Yupiter']],
+        ['Yer yuzasining qancha qismini suv egallaydi?', ['Taxminan 51%', 'Taxminan 61%', 'Taxminan 71%', 'Taxminan 81%']],
+        ["Buyuk Xitoy devorini Oydan oddiy ko'z bilan ko'rish mumkin.", null],
+        ['Qaysi tabiiy material eng qattiq?', ['Granit', 'Olmos', 'Temir', 'Kvars']],
+      ],
+    },
+  },
+
+  'islam-medium-1': {
+    kk: {
+      title: 'Ислам: орта деңгейдегі сұрақтар',
+      q: [
+        ['Құранда неше сүре бар?', null],
+        ['Құрандағы ең ұзын сүре қайсы?', ['Бақара', 'Әли Имран', 'Ниса', 'Кәһф']],
+        ['Құрандағы ең қысқа сүре қайсы?', ['Ихлас', 'Кәусар', 'Фалақ', 'Нас']],
+        ['Қай сүре «Бисмилләһир-рахманир-рахим»-мен басталмайды?', ['Әнфал', 'Юнус', 'Тәубе', 'Кәһф']],
+        ['Пайғамбар Мұхаммедке ﷺ алғашқы уахи қай үңгірде түсті?', ['Сәур', 'Хира', 'Ұхуд', 'Арафат']],
+        ['Алғашқы түскен уахи қандай бұйрықпен басталады?', ['«Оқы!»', '«Айт: Ол — Аллаһ, Жалғыз»', '«Барлық мақтау әлемдердің Раббы Аллаһқа»', '«Әй, бүркенген!»']],
+        ['Құранның түсуі шамамен қанша жылға созылды?', ['Шамамен 10 жыл', 'Шамамен 23 жыл', 'Шамамен 30 жыл', 'Шамамен 40 жыл']],
+        ['Исламдағы алғашқы азаншы кім болды?', ['Әбу Бәкір әс-Сыддық', 'Омар ибн әл-Хаттаб', 'Біләл ибн Рабах', 'Зәйд ибн Хариса']],
+        ['Мұсылмандардың алғашқы ірі шайқасы қай шайқас болды?', ['Ұхуд', 'Бәдр', 'Хандақ', 'Хунайн']],
+        ['Иманның неше шарты бар?', null],
+        ['Қай пайғамбар ұлы Исмаилмен бірге Қағбаның іргетасын қалады?', ['Нұх', 'Ибраһим', 'Мұса', 'Юсуф']],
+        ['Құран бойынша Қадір түні мың айдан қайырлы.', null],
+        ['Пітір садақа (зекәтул-фитр) Шәууал айының соңында беріледі.', null],
+        ['Рамазан ислам күнтізбесіндегі нешінші ай?', ['7-ші', '8-ші', '9-шы', '10-шы']],
+      ],
+    },
+    uz: {
+      title: "Islom: o'rta darajadagi savollar",
+      q: [
+        ["Qur'onda nechta sura bor?", null],
+        ["Qur'ondagi eng uzun sura qaysi?", ['Baqara', 'Oli Imron', 'Niso', 'Kahf']],
+        ["Qur'ondagi eng qisqa sura qaysi?", ['Ixlos', 'Kavsar', 'Falaq', 'Nos']],
+        ['Qaysi sura «Bismillahir rohmanir rohim» bilan boshlanmaydi?', ['Anfol', 'Yunus', 'Tavba', 'Kahf']],
+        ["Payg'ambarimiz Muhammadga ﷺ ilk vahiy qaysi g'orda nozil bo'lgan?", ['Savr', 'Hiro', 'Uhud', 'Arafot']],
+        ["Birinchi nozil bo'lgan vahiy qaysi buyruq bilan boshlanadi?", ["«O'qing!»", '«Ayting: U — Alloh yagonadir»', '«Barcha hamdlar olamlar Robbi Allohgadir»', "«Ey o'ranib olgan!»"]],
+        ["Qur'onning nozil bo'lishi taxminan qancha yil davom etgan?", ['Taxminan 10 yil', 'Taxminan 23 yil', 'Taxminan 30 yil', 'Taxminan 40 yil']],
+        ["Islomdagi birinchi muazzin kim bo'lgan?", ['Abu Bakr Siddiq', 'Umar ibn Xattob', 'Bilol ibn Raboh', 'Zayd ibn Horisa']],
+        ["Musulmonlarning birinchi yirik jangi qaysi jang bo'lgan?", ['Uhud', 'Badr', 'Xandaq', 'Hunayn']],
+        ['Iymonning nechta rukni bor?', null],
+        ["Qaysi payg'ambar o'g'li Ismoil bilan birga Ka'baning poydevorini ko'targan?", ['Nuh', 'Ibrohim', 'Muso', 'Yusuf']],
+        ["Qur'onga ko'ra, Qadr kechasi ming oydan yaxshiroqdir.", null],
+        ['Fitr sadaqasi (zakotul fitr) Shavvol oyining oxirida beriladi.', null],
+        ['Ramazon islomiy taqvimdagi nechanchi oy?', ['7-oy', '8-oy', '9-oy', '10-oy']],
+      ],
+    },
+  },
+
+  demo: {
+    kk: {
+      title: 'Жаттығу: жалпы білім',
+      q: [
+        ['Күн жүйесіндегі ең үлкен ғаламшар қайсы?', ['Марс', 'Юпитер', 'Сатурн', 'Нептун']],
+        ['Жер бетінде неше құрлық бар?', null],
+        ['Теңіз деңгейінде су 100 °C-та қайнайды.', null],
+        ['«Соғыс және бейбітшілік» романын кім жазды?', ['Ф. Достоевский', 'Л. Толстой', 'А. Чехов', 'А. Пушкин']],
+        ['Ауданы бойынша ең үлкен мұхит қайсы?', ['Атлант', 'Үнді', 'Тынық', 'Солтүстік Мұзды']],
+        ['Құрлықтағы ең жылдам жануар — бұл…', ['Гепард', 'Арыстан', 'Гну бөкені', 'Жылқы']],
+        ['Австралияның астанасы — Сидней.', null],
+        ['Бір кибибайтта (КиБ) неше байт бар?', null],
+      ],
+    },
+    uz: {
+      title: 'Mashq: umumiy bilim',
+      q: [
+        ['Quyosh tizimidagi eng katta sayyora qaysi?', ['Mars', 'Yupiter', 'Saturn', 'Neptun']],
+        ["Yerda nechta qit'a bor?", null],
+        ['Dengiz sathida suv 100 °C da qaynaydi.', null],
+        ['«Urush va tinchlik» romanini kim yozgan?', ['F. Dostoyevskiy', 'L. Tolstoy', 'A. Chexov', 'A. Pushkin']],
+        ["Maydoni bo'yicha eng katta okean qaysi?", ['Atlantika', 'Hind', 'Tinch', 'Shimoliy Muz']],
+        ['Quruqlikdagi eng tez hayvon — bu…', ['Gepard', 'Sher', 'Gnu antilopasi', 'Ot']],
+        ['Avstraliyaning poytaxti — Sidney.', null],
+        ['Bir kibibaytda (KiB) nechta bayt bor?', null],
+      ],
+    },
+  },
+};

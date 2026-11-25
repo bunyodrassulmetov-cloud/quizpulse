@@ -70,7 +70,7 @@
   async function checkPin(value) {
     const clean = String(value || '').replace(/\D/g, '');
     if (clean.length !== 6) return renderPin(clean, tr('p.pinDigits'));
-    const res = await emit(socket, 'room:check', { pin: clean });
+    const res = await emit(socket, 'room:check', { pin: clean, lang: I18N.lang });
     if (!res.ok) return renderPin(clean, errText(res));
     pin = clean;
     roomTitle = res.title;
@@ -109,7 +109,7 @@
       if (!name) return renderName(tr('err.name_required'));
       const btn = e.submitter || app.querySelector('button[type=submit]');
       btn.disabled = true;
-      const res = await emit(socket, 'player:join', { pin, name });
+      const res = await emit(socket, 'player:join', { pin, name, lang: I18N.lang });
       if (!res.ok) return renderName(errText(res));
       saveSession({ pin, token: res.token, lastName: name });
       history.replaceState(null, '', `/join?pin=${pin}`);
@@ -181,7 +181,7 @@
     renderFooter();
     pinPill.hidden = false;
     pinPill.textContent = `PIN ${s.pin}`;
-    const key = `${s.phase}|${s.qIndex}|${s.myAnswer}`;
+    const key = `${s.phase}|${s.qIndex}|${s.myAnswer}|${s.lang}`;
     if (key === renderedKey && s.phase !== 'lobby') return;
     renderedKey = key;
     if (stopTimer) stopTimer();
@@ -405,14 +405,29 @@
     if (state && screen === 'game') {
       renderedKey = '';
       render(state);
+      // вопросы и ответы на новом языке пришлёт сервер
+      socket.emit('player:lang', { lang: I18N.lang });
     } else if (screen === 'pin') {
       const input = $('#pinInput');
       renderPin(input ? input.value : '');
     } else if (screen === 'name') {
       const ni = $('#nameInput');
       const typed = ni ? ni.value : '';
-      renderName();
-      if (typed) $('#nameInput').value = typed;
+      const restore = () => {
+        renderName();
+        if (typed) $('#nameInput').value = typed;
+      };
+      restore();
+      // название викторины — на выбранном языке
+      emit(socket, 'room:check', { pin, lang: I18N.lang }).then((res) => {
+        if (res.ok && screen === 'name') {
+          roomTitle = res.title;
+          const cur = $('#nameInput');
+          const now = cur ? cur.value : typed;
+          renderName();
+          if (now) $('#nameInput').value = now;
+        }
+      });
     }
   });
 
@@ -427,7 +442,7 @@
   socket.on('connect', async () => {
     const sess = loadSession();
     if (!(sess && sess.pin && sess.token && (screen === 'game' || booting))) return;
-    const res = await emit(socket, 'player:rejoin', { pin: sess.pin, token: sess.token });
+    const res = await emit(socket, 'player:rejoin', { pin: sess.pin, token: sess.token, lang: I18N.lang });
     if (res.ok) {
       booting = false;
       pin = sess.pin;

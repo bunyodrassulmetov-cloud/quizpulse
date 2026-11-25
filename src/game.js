@@ -40,9 +40,20 @@ function shuffle(arr) {
 }
 
 /** Проверяет и нормализует викторину, присланную ведущим. Бросает Error с понятным текстом. */
+const LANGS = ['ru', 'kk', 'uz'];
+const pickLang = (l) => (LANGS.includes(l) ? l : null);
+
 function sanitizeQuiz(raw) {
   if (!raw || typeof raw !== 'object') throw new Error('Викторина не передана');
   const title = clampStr(raw.title, 120) || 'Без названия';
+  const lang = pickLang(raw.lang) || 'ru'; // язык основного текста
+  const others = LANGS.filter((l) => l !== lang);
+  const rawTr = raw.tr && typeof raw.tr === 'object' ? raw.tr : {};
+  const titleTr = {};
+  others.forEach((l) => {
+    const t = clampStr(rawTr[l] && rawTr[l].title, 120);
+    if (t) titleTr[l] = t;
+  });
   if (!Array.isArray(raw.questions) || raw.questions.length === 0) throw new Error('В викторине нет вопросов');
   if (raw.questions.length > 100) throw new Error('Слишком много вопросов (максимум 100)');
 
@@ -57,11 +68,23 @@ function sanitizeQuiz(raw) {
     const correctRaw = Array.isArray(q.correct) ? q.correct : [q.correct];
     // Убираем пустые варианты, пересчитывая индексы правильных
     const kept = [];
+    const keptIdx = [];
     const correct = [];
     answers.forEach((a, idx) => {
       if (!a) return;
       if (correctRaw.includes(idx)) correct.push(kept.length);
       kept.push(a);
+      keptIdx.push(idx);
+    });
+    // Переводы вопроса: текст и варианты (по тем же индексам; пустое — как в оригинале)
+    const qtr = {};
+    const srcTr = q.tr && typeof q.tr === 'object' ? q.tr : {};
+    others.forEach((l) => {
+      const t = srcTr[l];
+      if (!t || typeof t !== 'object') return;
+      const ttext = clampStr(t.text, 300);
+      const tans = type === 'truefalse' ? [] : keptIdx.map((idx) => clampStr(Array.isArray(t.answers) ? t.answers[idx] : '', 120));
+      if (ttext || tans.some(Boolean)) qtr[l] = { text: ttext, answers: tans };
     });
     if (kept.length < 2) throw new Error(`Вопрос ${n}: нужно минимум 2 варианта ответа`);
     if (correct.length === 0) throw new Error(`Вопрос ${n}: отметьте правильный ответ`);
@@ -70,10 +93,17 @@ function sanitizeQuiz(raw) {
     let image = clampStr(q.image, 500);
     // внешняя ссылка или встроенная картинка из /img/
     if (image && !/^https?:\/\//i.test(image) && !/^\/img\/[\w/-]+\.(svg|png|jpe?g|webp)$/i.test(image)) image = '';
-    return { text, type, answers: kept, correct, timeLimit, points, image };
+    return { text, type, answers: kept, correct, timeLimit, points, image, tr: qtr };
   });
 
-  return { title, questions };
+  return { title, lang, titleTr, questions };
+}
+
+/** Текст вопроса и варианты на нужном языке (с запасным вариантом — оригиналом) */
+function localizeQuestion(q, lang, baseLang) {
+  const t = lang && lang !== baseLang && q.tr ? q.tr[lang] : null;
+  if (!t) return { text: q.text, answers: q.answers };
+  return { text: t.text || q.text, answers: q.answers.map((a, i) => (t.answers && t.answers[i]) || a) };
 }
 
 class Game {
@@ -87,6 +117,9 @@ class Game {
       winnerSound: settings && settings.winnerSound === 'cheer' ? 'cheer' : 'lion',
     };
     this.title = clean.title;
+    this.baseLang = clean.lang;
+    this.titleTr = clean.titleTr;
+    this.hostLang = clean.lang;
     this.questions = this.settings.shuffleQuestions ? shuffle(clean.questions) : clean.questions;
     this.hostToken = token();
     this.hostSocketId = null;
@@ -115,7 +148,7 @@ class Game {
 
   // ---------- Игроки ----------
 
-  addPlayer({ name, socketId }) {
+  addPlayer({ name, socketId, lang }) {
     if (this.locked) throw gameError('locked', 'Ведущий закрыл вход в игру');
     if (this.phase === PHASE.FINAL) throw gameError('ended', 'Игра уже закончилась');
     if (this.players.size >= MAX_PLAYERS) throw gameError('full', 'Комната заполнена');
@@ -137,6 +170,7 @@ class Game {
       lastCorrect: null,
       prevRank: null,
       socketId,
+      lang: pickLang(lang) || this.baseLang,
       connected: true,
       joinedAt: Date.now(),
     };
@@ -344,11 +378,29 @@ class Game {
 
   // ---------- Представления для клиентов ----------
 
-  baseView() {
+  titleFor(lang) {
+    return (lang && lang !== this.baseLang && this.titleTr[lang]) || this.title;
+  }
+
+  setHostLang(lang) {
+    if (!pickLang(lang)) return;
+    this.hostLang = lang;
+    this.broadcastHost();
+  }
+
+  setPlayerLang(playerId, lang) {
+    const p = this.players.get(playerId);
+    if (!p || !pickLang(lang)) return;
+    p.lang = lang;
+    this.emitToPlayer(p);
+  }
+
+  baseView(lang) {
     return {
       phase: this.phase,
       pin: this.pin,
-      title: this.title,
+      lang: lang || this.baseLang,
+      title: this.titleFor(lang),
       qIndex: this.qIndex,
       qTotal: this.questions.length,
       remainingMs: this.phaseEndsAt ? Math.max(0, this.phaseEndsAt - Date.now()) : 0,
@@ -360,7 +412,7 @@ class Game {
     const q = this.question;
     const ranking = this.ranking();
     const view = {
-      ...this.baseView(),
+      ...this.baseView(this.hostLang),
       role: 'host',
       locked: this.locked,
       settings: this.settings,
@@ -368,7 +420,7 @@ class Game {
         .sort((a, b) => a.joinedAt - b.joinedAt)
         .map((p) => ({ id: p.id, name: p.name, color: p.color, connected: p.connected, score: p.score })),
       question: q
-        ? { text: q.text, type: q.type, answers: q.answers, timeLimit: q.timeLimit, points: q.points, image: q.image }
+        ? { ...localizeQuestion(q, this.hostLang, this.baseLang), type: q.type, timeLimit: q.timeLimit, points: q.points, image: q.image }
         : null,
       answeredCount: this.answers.size,
       activeCount: [...this.players.values()].filter((p) => p.connected).length,
@@ -393,15 +445,16 @@ class Game {
 
   playerView(p) {
     const q = this.question;
-    const view = { ...this.baseView(), role: 'player', showOnDevices: this.settings.showOnDevices, winnerSound: this.settings.winnerSound };
+    const view = { ...this.baseView(p.lang), role: 'player', showOnDevices: this.settings.showOnDevices, winnerSound: this.settings.winnerSound };
+    const lq = q ? localizeQuestion(q, p.lang, this.baseLang) : null;
     const ranking = this.ranking();
     const rank = ranking.findIndex((x) => x.id === p.id) + 1;
     view.me = { id: p.id, name: p.name, color: p.color, score: p.score, streak: p.streak, rank, total: ranking.length };
     if (q && this.phase !== PHASE.LOBBY) {
       view.question = { type: q.type, answersCount: q.answers.length, timeLimit: q.timeLimit, points: q.points };
       if (this.settings.showOnDevices) {
-        view.question.text = q.text;
-        view.question.answers = q.answers;
+        view.question.text = lq.text;
+        view.question.answers = lq.answers;
         view.question.image = q.image;
       }
     }
@@ -416,7 +469,7 @@ class Game {
         aheadName: ahead ? ahead.name : null,
         gap: ahead ? ahead.score - p.score : 0,
         correctIndices: q ? q.correct : [],
-        correctTexts: q ? q.correct.map((i) => q.answers[i]) : [],
+        correctTexts: q ? q.correct.map((i) => lq.answers[i]) : [],
         correctCount: p.correctCount,
       };
     }
@@ -482,4 +535,4 @@ class GameManager {
   }
 }
 
-module.exports = { Game, GameManager, PHASE, sanitizeQuiz, gameError };
+module.exports = { Game, GameManager, PHASE, sanitizeQuiz, gameError, localizeQuestion, LANGS };
