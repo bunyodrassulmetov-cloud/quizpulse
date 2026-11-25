@@ -117,7 +117,7 @@
     });
   }
 
-  const IMG = (f) => `/img/quiz/${f}.svg`;
+  const IMG = (f) => `/img/photo/${f}.jpg`;
 
   function quranQuiz() {
     return normalizeQuiz({
@@ -207,6 +207,16 @@
     if (!Array.isArray(list)) list = [];
     const seeded = new Set(store.get(STORE_SEEDED, []));
     let changed = false;
+    // Рисунки из прошлой версии заменены настоящими фотографиями
+    list.forEach((q) =>
+      (q.questions || []).forEach((x) => {
+        const m = /^\/img\/quiz\/([a-z]+)\.svg$/.exec(x.image || '');
+        if (m) {
+          x.image = `/img/photo/${m[1]}.jpg`;
+          changed = true;
+        }
+      })
+    );
     BUILTIN.forEach((make) => {
       const quiz = make();
       if (seeded.has(quiz.id)) return;
@@ -360,6 +370,7 @@
           <div class="step"><b>2</b><div style="font-weight:800">Откройте комнату</div><p>На экране появится PIN и QR-код. Выведите его на проектор или в демонстрацию экрана.</p></div>
           <div class="step"><b>3</b><div style="font-weight:800">Играйте вживую</div><p>Участники отвечают с телефонов, очки за скорость, таблица лидеров и пьедестал.</p></div>
         </section>
+        <p class="muted" style="margin:18px 0 0;font-size:13px">Фото и записи звуков — Wikimedia Commons, свободные лицензии. <a href="/credits" style="color:var(--accent)">Авторы и лицензии</a></p>
       </div>`;
 
     view.querySelectorAll('.quiz-card').forEach((card) => {
@@ -697,20 +708,20 @@
   // ---------------- Галерея встроенных картинок ----------------
 
   const GALLERY = [
-    ['clock', 'Часы'], ['fig', 'Инжир и олива'], ['pen', 'Калам и чернила'], ['iron', 'Железо и наковальня'],
-    ['sun', 'Солнце'], ['stars', 'Звезда, луна и солнце'], ['dates', 'Финики и вода'], ['trench', 'Ров у города'],
-    ['ring', 'Перстень-печать'], ['dome', 'Зелёный купол'], ['ship', 'Корабль в бурю'], ['fingerprint', 'Отпечаток пальца'],
-    ['rain', 'Дождь над сухой землёй'], ['honey', 'Мёд'], ['maunakea', 'Гора из океана'], ['sunlight', 'Свет Солнца и Земля'],
-    ['venus', 'Планета Венера'],
-  ].map(([f, name]) => ({ src: `/img/quiz/${f}.svg`, name }));
+    ['clock', 'Часы'], ['fig', 'Инжир'], ['pen', 'Калам'], ['iron', 'Наковальня (железо)'],
+    ['sun', 'Солнце'], ['stars', 'Луна и звёзды'], ['dates', 'Финики'], ['trench', 'Ров у крепости'],
+    ['ring', 'Перстень-печать'], ['dome', 'Мечеть Пророка ﷺ'], ['ship', 'Корабль в шторм'], ['fingerprint', 'Кончик пальца'],
+    ['rain', 'Сухая потрескавшаяся земля'], ['honey', 'Мёд'], ['maunakea', 'Мауна-Кеа'], ['sunlight', 'Восход над Землёй из космоса'],
+    ['venus', 'Венера'],
+  ].map(([f, name]) => ({ src: `/img/photo/${f}.jpg`, name }));
 
   function openGallery(onPick) {
     const back = document.createElement('div');
     back.className = 'modal-back';
     back.innerHTML = `
       <div class="card modal wide bounce-in" role="dialog" aria-modal="true" aria-labelledby="gt">
-        <div class="row"><h2 id="gt" style="margin:0">Галерея картинок</h2><span class="spacer"></span><button class="btn btn-sm btn-ghost" id="gClose">Закрыть</button></div>
-        <p class="muted" style="margin:6px 0 16px">Нажмите на картинку, чтобы добавить её к вопросу</p>
+        <div class="row"><h2 id="gt" style="margin:0">Галерея фото</h2><span class="spacer"></span><button class="btn btn-sm btn-ghost" id="gClose">Закрыть</button></div>
+        <p class="muted" style="margin:6px 0 16px">Нажмите на фото, чтобы добавить его к вопросу. Источники и лицензии — <a href="/credits" target="_blank" rel="noopener" style="color:var(--accent)">на этой странице</a>.</p>
         <div class="gallery">${GALLERY.map((g) => `<button type="button" data-src="${esc(g.src)}"><img src="${esc(g.src)}" alt="" loading="lazy" /><span>${esc(g.name)}</span></button>`).join('')}</div>
       </div>`;
     document.body.appendChild(back);

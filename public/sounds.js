@@ -393,7 +393,22 @@
       }
     }
 
-    return { drop, tick, knock, thump, heartbeat, whoosh, splash, rain, bird, birds, stream, duff, roll, bigHit, roar, sparkle };
+    /** Воспроизведение настоящей записи (AudioBuffer) */
+    function sample(buf, t, opts = {}) {
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const g = gain(0);
+      const level = opts.gain == null ? 1 : opts.gain;
+      if (opts.fadeIn) {
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(level, t + opts.fadeIn);
+      } else g.gain.setValueAtTime(level, t);
+      src.connect(g).connect(out);
+      src.start(t, opts.offset || 0);
+      return src;
+    }
+
+    return { drop, tick, knock, thump, heartbeat, whoosh, splash, rain, bird, birds, stream, duff, roll, bigHit, roar, sparkle, sample };
   }
 
   // ---------------- Живое воспроизведение ----------------
@@ -403,6 +418,29 @@
   try {
     muted = localStorage.getItem(KEY) === '1';
   } catch (e) { /* нет доступа к хранилищу */ }
+
+  // Настоящие записи с Wikimedia Commons (свободные лицензии, см. /credits):
+  // барабанная дробь и удар — CC0, рык льва — общественное достояние.
+  const SAMPLE_URLS = { roll: '/audio/drumroll.mp3', hit: '/audio/drum-hit.mp3', lion: '/audio/lion-roar.mp3' };
+  const sampleData = {};
+  const samples = {};
+  function preloadSamples() {
+    Object.entries(SAMPLE_URLS).forEach(([k, url]) => {
+      if (!sampleData[k]) sampleData[k] = fetch(url).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
+    });
+  }
+  async function decodeSamples() {
+    preloadSamples();
+    for (const k of Object.keys(SAMPLE_URLS)) {
+      if (samples[k] || !ctx) continue;
+      const ab = await sampleData[k];
+      if (!ab) continue;
+      try {
+        samples[k] = await new Promise((res, rej) => ctx.decodeAudioData(ab.slice(0), res, rej));
+      } catch (e) { /* остаётся синтезированный вариант */ }
+    }
+  }
+  preloadSamples();
 
   let ctx = null;
   let master = null;
@@ -424,6 +462,7 @@
       master.connect(comp).connect(ctx.destination);
       eng = createEngine(ctx, master);
       ctx.addEventListener('statechange', syncAmbience);
+      decodeSamples();
     }
     if (ctx.state === 'suspended') ctx.resume().catch(() => {});
     return ctx;
@@ -471,6 +510,7 @@
     createEngine,
     isMuted: () => muted,
     state: () => (ctx ? ctx.state : 'none'),
+    samplesReady: () => Object.keys(samples),
     setMuted(v) {
       muted = !!v;
       try {
@@ -538,17 +578,24 @@
       for (let i = 0; i < rows; i++) e.drop(t(0.3 + i * 0.09), rnd(700, 1200), 0.3, 0.09);
     }),
     /** Пьедестал: барабанная дробь перед объявлением места */
-    podiumRoll: (ms, place) => podium((e, t) => e.roll(t(), ms / 1000, place === 1 ? 0.6 : 0.5)),
+    podiumRoll: (ms, place) => podium((e, t) => {
+      const b = samples.roll;
+      const dur = ms / 1000;
+      if (!b) return e.roll(t(), dur, place === 1 ? 0.6 : 0.5);
+      // запись заканчивается финальным акцентом ровно в момент объявления места
+      const level = place === 1 ? 1 : 0.8;
+      if (dur >= b.duration) e.sample(b, t(dur - b.duration), { gain: level });
+      else e.sample(b, t(), { offset: b.duration - dur, gain: level, fadeIn: 0.2 });
+    }),
     /** Объявление места: удар; для 1-го места — рык льва и яркий звёздный дождь */
     podiumHit: (place) => podium((e, t) => {
-      e.bigHit(t(), place === 1 ? 1 : 0.85);
+      if (samples.hit) e.sample(samples.hit, t(), { gain: place === 1 ? 1 : 0.85 });
+      else e.bigHit(t(), place === 1 ? 1 : 0.85);
       if (place === 1) {
-        e.roar(t(0.08), 0.85, 2.4);
-        e.sparkle(t(0.15), 1.8, 0.45);
-        e.rain(t(1.2), 3.5, 26, 0.4);
-        e.birds(t(1.8), 4, 7, 0.14);
-      } else {
-        e.sparkle(t(0.05), 0.9, 0.3);
+        if (samples.lion) e.sample(samples.lion, t(0.15), { gain: 1 });
+        else e.roar(t(0.08), 0.85, 2.4);
+        e.rain(t(3.6), 3.5, 24, 0.32);
+        e.birds(t(4.2), 4, 6, 0.12);
       }
     }),
     podiumCancel() {
@@ -565,9 +612,12 @@
     /** Телефон участника: его место объявлено */
     placeReveal: (rank) => play((e, t) => {
       if (rank > 3) return e.splash(t(), 0.45);
-      e.bigHit(t(), 0.8);
-      e.sparkle(t(0.05), 1.2, 0.4);
-      if (rank === 1) e.roar(t(0.08), 0.7, 2.2);
+      if (samples.hit) e.sample(samples.hit, t(), { gain: 0.85 });
+      else e.bigHit(t(), 0.8);
+      if (rank === 1) {
+        if (samples.lion) e.sample(samples.lion, t(0.15), { gain: 0.9 });
+        else e.roar(t(0.08), 0.7, 2.2);
+      } else e.sparkle(t(0.05), 1.2, 0.35);
     }),
     finish: () => play((e, t) => e.splash(t(), 0.45)),
   };
