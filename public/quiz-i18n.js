@@ -5,6 +5,53 @@
  * (числа, «Верно/Неверно» переводятся интерфейсом).
  */
 window.QP_QUIZ_I18N = {
+  'islam-hard-1': {
+    kk: {
+      title: 'Ислам: ең қиын сұрақтар',
+      q: [
+        ['Бақара сүресінде неше аят бар?', null],
+        ['Құранда «Мұхаммед» есімі неше рет кездеседі?', null],
+        ['Құранда есімімен аталған жалғыз сахаба кім?', ['Әбу Бәкір әс-Сыддық', 'Біләл ибн Рабах', 'Зәйд ибн Хариса', 'Салман әл-Фариси']],
+        ['«Әнбия» сүресінде Юнус пайғамбар қалай аталған?', ['Зул-Кифл', 'Зун-Нун', 'Зул-Қарнайн', 'Халилуллаһ']],
+        ['Құранда қай екі шайқас тікелей атымен аталған?', ['Бәдр және Ұхуд', 'Бәдр және Хунайн', 'Хайбар және Табук', 'Мута және Табук']],
+        ['Құрандағы ең ұзын аят қайсы?', ['Әл-Күрси аяты', 'Қарыз туралы аят (2:282)', 'Нұр туралы аят (24:35)', 'Бақара сүресінің соңғы аяты']],
+        ['Халифа Осман тұсында біртұтас мұсхафты құрастыру жұмысын кім басқарды?', ['Абдуллаһ ибн Мәсғұд', 'Әбу Мұса әл-Әшғари', 'Зәйд ибн Сәбит', 'Мұғаз ибн Жәбәл']],
+        ['Мұнафықтардың есімдерін білген, «Пайғамбар ﷺ сырының сақтаушысы» атанған сахаба кім?', ['Әбу Һурайра', 'Хузайфа ибн әл-Яман', 'Абдуллаһ ибн Аббас', 'Әнас ибн Мәлик']],
+        ['Мүміндердің аналарының ішінен Пайғамбар ﷺ ең соңғы болып кімге үйленді?', ['Айша', 'Хафса', 'Үммі Сәләма', 'Маймуна']],
+        ['Пайғамбар ﷺ һижраның нешінші жылы дүниеден өтті?', null],
+        ['Һижрадан бастап жыл санауды қай халифа енгізді?', ['Әбу Бәкір', 'Омар', 'Осман', 'Әли']],
+        ['Бәдр шайқасына шамамен қанша мұсылман қатысты?', ['шамамен 70', 'шамамен 313', 'шамамен 700', 'шамамен 1000']],
+        ['Құранда Ибраһим пайғамбардың әкесі қалай аталған?', ['Имран', 'Азар', 'Лұт', 'Һарун']],
+        ['Құранда неше пайғамбардың есімі аталған?', null],
+        ['Қағбаның жанындағы жарты шеңбер тәрізді аласа қабырға қалай аталады?', ['Мақам Ибраһим', 'Хижр Исмаил (Хатым)', 'Мүлтәзәм', 'Мизаб']],
+        ['Осы жасыл күмбездің астында Пайғамбармен ﷺ қатар кімдер жерленген?', ['Әбу Бәкір мен Омар', 'Осман мен Әли', 'Хамза мен Аббас', 'Айша мен Фатима']],
+        ['«Нәмл» сүресінің ортасындағы «Бисмилләһир-рахманир-рахим» — Сүлейманның Сәба патшайымына жазған хатының басы.', null],
+      ],
+    },
+    uz: {
+      title: 'Islom: eng qiyin savollar',
+      q: [
+        ['Baqara surasida nechta oyat bor?', null],
+        ["Qur'onda «Muhammad» ismi necha marta uchraydi?", null],
+        ["Qur'onda ismi bilan zikr qilingan yagona sahobiy kim?", ['Abu Bakr Siddiq', 'Bilol ibn Raboh', 'Zayd ibn Horisa', 'Salmon Forsiy']],
+        ["«Anbiyo» surasida Yunus payg'ambar qanday atalgan?", ['Zul-Kifl', 'Zun-Nun', 'Zul-Qarnayn', 'Xalilulloh']],
+        ["Qur'onda qaysi ikki jang to'g'ridan-to'g'ri nomi bilan zikr qilingan?", ['Badr va Uhud', 'Badr va Hunayn', 'Xaybar va Tabuk', "Mu'ta va Tabuk"]],
+        ["Qur'ondagi eng uzun oyat qaysi?", ['Oyatal Kursiy', 'Qarz haqidagi oyat (2:282)', 'Nur oyati (24:35)', 'Baqara surasining oxirgi oyati']],
+        ['Xalifa Usmon davrida yagona mushafni tuzish ishiga kim rahbarlik qilgan?', ["Abdulloh ibn Mas'ud", "Abu Muso Ash'ariy", 'Zayd ibn Sobit', 'Muoz ibn Jabal']],
+        ["Munofiqlarning ismlarini bilgan, «Payg'ambar ﷺ sirining sohibi» deb atalgan sahobiy kim?", ['Abu Hurayra', 'Huzayfa ibn Yamon', 'Abdulloh ibn Abbos', 'Anas ibn Molik']],
+        ["Mo'minlarning onalaridan Payg'ambarimiz ﷺ eng oxirgi bo'lib kimga uylanganlar?", ['Oisha', 'Hafsa', 'Ummu Salama', 'Maymuna']],
+        ["Payg'ambarimiz ﷺ hijriy nechanchi yilda vafot etganlar?", null],
+        ['Hijratdan boshlab yil hisobini qaysi xalifa joriy qilgan?', ['Abu Bakr', 'Umar', 'Usmon', 'Ali']],
+        ['Badr jangida taxminan qancha musulmon qatnashgan?', ['taxminan 70', 'taxminan 313', 'taxminan 700', 'taxminan 1000']],
+        ["Qur'onda Ibrohim payg'ambarning otasi qanday atalgan?", ['Imron', 'Ozar', 'Lut', 'Horun']],
+        ["Qur'onda nechta payg'ambarning ismi zikr qilingan?", null],
+        ["Ka'ba yonidagi yarim doira shaklidagi past devor qanday ataladi?", ['Maqomi Ibrohim', 'Hijri Ismoil (Hatim)', 'Multazam', 'Mizob']],
+        ["Shu yashil gumbaz ostida Payg'ambarimiz ﷺ bilan yonma-yon kimlar dafn etilgan?", ['Abu Bakr va Umar', 'Usmon va Ali', 'Hamza va Abbos', 'Oisha va Fotima']],
+        ["«Naml» surasi o'rtasidagi «Bismillahir rohmanir rohim» — Sulaymonning Saba malikasiga yozgan maktubining boshlanishi.", null],
+      ],
+    },
+  },
+
   'islam-photo-1': {
     kk: {
       title: 'Ислам фотосуреттерде',
