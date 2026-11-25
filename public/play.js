@@ -1,6 +1,7 @@
 /* Экран участника */
 (function () {
-  const { LETTERS, esc, $, toast, emit, watchConnection, countdown, fmt, confetti, BRAND_SVG } = window.QP;
+  const { LETTERS, esc, $, toast, emit, watchConnection, countdown, fmt, confetti, BRAND_SVG, ICONS, avatar } = window.QP;
+  const Sound = window.QPSound;
   $('#brandMark').innerHTML = BRAND_SVG;
 
   const app = $('#app');
@@ -11,16 +12,15 @@
   const socket = io({ transports: ['websocket', 'polling'] });
   watchConnection(socket);
 
-  let avatars = ['🦊', '🐼', '🐸', '🐙', '🦄', '🐯', '🐧', '🐨', '🦁', '🐵'];
   let screen = 'pin';
   let pin = '';
   let roomTitle = '';
-  let chosenAvatar = null;
   let state = null;
   let renderedKey = '';
   let stopTimer = null;
   let sending = false;
   let booting = false;
+  let soundPhase = '';
 
   const loadSession = () => {
     try {
@@ -35,14 +35,6 @@
       else localStorage.removeItem(STORE);
     } catch (e) { /* приватный режим */ }
   };
-
-  fetch('/api/info')
-    .then((r) => r.json())
-    .then((info) => {
-      if (Array.isArray(info.avatars) && info.avatars.length) avatars = info.avatars;
-      if (screen === 'name') renderName();
-    })
-    .catch(() => {});
 
   // ---------- Вход ----------
 
@@ -88,7 +80,6 @@
     footer.hidden = true;
     pinPill.hidden = false;
     pinPill.textContent = `PIN ${pin}`;
-    if (!chosenAvatar) chosenAvatar = avatars[Math.floor(Math.random() * avatars.length)];
     const prevName = (loadSession() || {}).lastName || '';
     app.innerHTML = `
       <div class="center fade-in">
@@ -100,24 +91,12 @@
               <label class="label" for="nameInput">Ваше имя</label>
               <input class="input" id="nameInput" maxlength="20" autocomplete="nickname" placeholder="Например, Аня" value="${esc(prevName)}" />
             </div>
-            <div>
-              <span class="label">Аватар</span>
-              <div class="avatars" id="avatars">
-                ${avatars.map((a) => `<button type="button" data-a="${esc(a)}" class="${a === chosenAvatar ? 'on' : ''}" aria-label="Аватар ${esc(a)}">${esc(a)}</button>`).join('')}
-              </div>
-            </div>
             ${error ? `<div style="color:#ffb3b5;font-weight:700">${esc(error)}</div>` : ''}
             <button class="btn btn-primary btn-lg" type="submit">Поехали!</button>
           </form>
         </div>
         <button class="btn btn-ghost btn-sm" id="backBtn">← Другой PIN</button>
       </div>`;
-    $('#avatars').addEventListener('click', (e) => {
-      const b = e.target.closest('button[data-a]');
-      if (!b) return;
-      chosenAvatar = b.dataset.a;
-      app.querySelectorAll('#avatars button').forEach((x) => x.classList.toggle('on', x === b));
-    });
     $('#backBtn').addEventListener('click', () => {
       history.replaceState(null, '', '/');
       renderPin();
@@ -128,7 +107,7 @@
       if (!name) return renderName('Введите имя');
       const btn = e.submitter || app.querySelector('button[type=submit]');
       btn.disabled = true;
-      const res = await emit(socket, 'player:join', { pin, name, avatar: chosenAvatar });
+      const res = await emit(socket, 'player:join', { pin, name });
       if (!res.ok) return renderName(res.error);
       saveSession({ pin, token: res.token, lastName: name });
       history.replaceState(null, '', `/join?pin=${pin}`);
@@ -144,7 +123,40 @@
   function renderFooter() {
     if (!state || !state.me) return (footer.hidden = true);
     footer.hidden = false;
-    footer.innerHTML = `<span style="font-size:26px">${esc(state.me.avatar)}</span><span class="name">${esc(state.me.name)}</span><span class="score">${fmt(state.me.score)}</span>`;
+    footer.innerHTML = `${avatar(state.me.name, state.me.color)}<span class="name">${esc(state.me.name)}</span>
+      <button class="sound-btn" id="soundBtn" aria-label="${Sound.isMuted() ? 'Включить звук' : 'Выключить звук'}">${Sound.isMuted() ? ICONS.soundOff : ICONS.soundOn}</button>
+      <span class="score">${fmt(state.me.score)}</span>`;
+    $('#soundBtn').addEventListener('click', () => {
+      Sound.toggle();
+      renderFooter();
+    });
+  }
+
+  /** Звуки на телефоне — один раз при смене экрана */
+  function phaseSound(s) {
+    const key = `${s.phase}|${s.qIndex}`;
+    if (key === soundPhase) return;
+    soundPhase = key;
+    switch (s.phase) {
+      case 'lobby':
+        Sound.join();
+        break;
+      case 'preview':
+        Sound.questionIn();
+        break;
+      case 'reveal': {
+        const c = s.result && s.result.correct;
+        if (c === true) Sound.correct();
+        else if (c === false) Sound.wrong();
+        else Sound.timeout();
+        break;
+      }
+      case 'final':
+        if (s.me.rank <= 3) Sound.celebrate();
+        else Sound.finish();
+        break;
+      default:
+    }
   }
 
   function rankLine(s) {
@@ -176,6 +188,7 @@
     renderedKey = key;
     if (stopTimer) stopTimer();
     stopTimer = null;
+    phaseSound(s);
 
     const q = s.question;
     const qNum = `Вопрос ${s.qIndex + 1} из ${s.qTotal}`;
@@ -184,7 +197,7 @@
       case 'lobby':
         app.innerHTML = `
           <div class="center fade-in">
-            <div class="big-avatar bounce-in">${esc(s.me.avatar)}</div>
+            <div class="bounce-in">${avatar(s.me.name, s.me.color, 'xl')}</div>
             <h1 class="title-xl">Вы в игре!</h1>
             <p class="muted" style="margin:0;font-size:17px">Смотрите на экран ведущего — скоро начнём</p>
             <div class="dots" style="margin:10px 0"><span></span><span></span><span></span></div>
@@ -235,9 +248,16 @@
             ${q.text ? `<div class="qtext">${esc(q.text)}</div>` : '<div class="qtext muted">Выберите ответ на экране ведущего</div>'}
             ${answersMarkup(q, null)}
           </div>`;
+        let lastSec = Math.ceil(s.remainingMs / 1000);
         stopTimer = countdown(s.remainingMs, total, (left, frac) => {
           const bar = $('#tbar');
           const sec = $('#tsec');
+          const whole = Math.ceil(left / 1000);
+          if (whole !== lastSec) {
+            lastSec = whole;
+            // в онлайн-формате телефон — единственный экран, поэтому тикаем последние 5 секунд
+            if (s.showOnDevices && whole <= 5 && whole > 0 && bar) Sound.second(99);
+          }
           if (bar) {
             bar.style.transform = `scaleX(${frac})`;
             bar.style.background = left <= 5000 ? 'var(--bad)' : 'var(--accent)';
@@ -248,6 +268,7 @@
           const b = e.target.closest('.ans');
           if (!b || sending) return;
           sending = true;
+          Sound.tap();
           const index = Number(b.dataset.i);
           app.querySelectorAll('.ans').forEach((x) => x.classList.toggle('dim', x !== b));
           if (navigator.vibrate) navigator.vibrate(30);
@@ -265,14 +286,14 @@
         const r = s.result;
         const kind = r.correct === true ? 'ok' : r.correct === false ? 'bad' : 'none';
         const head = { ok: 'Верно!', bad: 'Неверно', none: 'Время вышло' }[kind];
-        const icon = { ok: '✓', bad: '✕', none: '⏱' }[kind];
+        const icon = { ok: ICONS.check, bad: ICONS.cross, none: ICONS.clock }[kind];
         app.innerHTML = `
           <div class="center">
             <div class="result ${kind} bounce-in">
               <div class="icon">${icon}</div>
               <h1 class="title-xl" style="margin-top:8px">${head}</h1>
               ${kind === 'ok' ? `<div class="pts">+${fmt(r.points)}</div>` : ''}
-              ${kind === 'ok' && r.streak >= 2 ? `<div style="margin-top:12px;font-weight:800">🔥 Серия: ${r.streak} подряд</div>` : ''}
+              ${kind === 'ok' && r.streak >= 2 ? `<div style="margin-top:12px;font-weight:800">${ICONS.flame} Серия: ${r.streak} подряд</div>` : ''}
               ${kind !== 'ok' && r.correctTexts.length && s.showOnDevices ? `<div style="margin-top:14px;font-weight:700">Правильно: ${r.correctTexts.map(esc).join(' / ')}</div>` : ''}
               ${kind !== 'ok' && !s.showOnDevices ? `<div style="margin-top:14px;font-weight:700">Правильно: ${r.correctIndices.map((i) => LETTERS[i]).join(', ')}</div>` : ''}
             </div>
@@ -285,19 +306,19 @@
       case 'leaderboard':
         app.innerHTML = `
           <div class="center fade-in">
-            <div class="big-avatar">${esc(s.me.avatar)}</div>
+            ${avatar(s.me.name, s.me.color, 'xl')}
             <h1 class="title-xl">${s.me.rank} место</h1>
             <p class="muted" style="margin:0">из ${s.me.total} участников · ${fmt(s.me.score)} очков</p>
-            ${s.result && s.result.aheadName ? `<p>До «${esc(s.result.aheadName)}» — ${fmt(s.result.gap)} очк.</p>` : s.me.rank === 1 ? '<p>Вы лидер! 🏆</p>' : ''}
+            ${s.result && s.result.aheadName ? `<p>До «${esc(s.result.aheadName)}» — ${fmt(s.result.gap)} очк.</p>` : s.me.rank === 1 ? '<p>Вы лидер!</p>' : ''}
             <div class="dots"><span></span><span></span><span></span></div>
           </div>`;
         break;
 
       case 'final': {
-        const medal = ['🥇', '🥈', '🥉'][s.me.rank - 1] || '🎉';
+        const rc = s.me.rank <= 3 ? `r${s.me.rank}` : 'rn';
         app.innerHTML = `
           <div class="center fade-in">
-            <div class="medal bounce-in">${medal}</div>
+            <div class="rank-badge ${rc} bounce-in">${s.me.rank}</div>
             <h1 class="title-xl">${s.me.rank} место из ${s.me.total}</h1>
             <p style="margin:0;font-size:18px"><b>${fmt(s.me.score)}</b> очков</p>
             <p class="muted" style="margin:0">Правильных ответов: ${s.result ? s.result.correctCount : 0} из ${s.qTotal}</p>

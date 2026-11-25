@@ -1,6 +1,7 @@
 /* Экран ведущего: библиотека викторин, редактор и проведение игры */
 (function () {
-  const { LETTERS, esc, $, $$, toast, emit, watchConnection, countdown, ringSVG, updateRing, confetti, animateNumber, fmt, BRAND_SVG } = window.QP;
+  const { LETTERS, esc, $, $$, toast, emit, watchConnection, countdown, ringSVG, updateRing, confetti, animateNumber, fmt, BRAND_SVG, ICONS, avatar } = window.QP;
+  const Sound = window.QPSound;
   $('#brandMark').innerHTML = BRAND_SVG;
 
   const view = $('#view');
@@ -93,11 +94,48 @@
     });
   }
 
+  function islamQuiz() {
+    return normalizeQuiz({
+      id: 'islam-medium-1',
+      title: 'Ислам: вопросы среднего уровня',
+      questions: [
+        { text: 'Сколько сур в Коране?', answers: ['110', '112', '114', '120'], correct: [2], timeLimit: 20 },
+        { text: 'Какая сура — самая длинная в Коране?', answers: ['Аль-Бакара', 'Аль Имран', 'Ан-Ниса', 'Аль-Кахф'], correct: [0], timeLimit: 20 },
+        { text: 'Какая сура — самая короткая в Коране?', answers: ['Аль-Ихлас', 'Аль-Каусар', 'Аль-Фалак', 'Ан-Нас'], correct: [1], timeLimit: 20 },
+        { text: 'Какая сура не начинается с «Бисмилляхи-р-Рахмани-р-Рахим»?', answers: ['Аль-Анфаль', 'Юнус', 'Ат-Тауба', 'Аль-Кахф'], correct: [2], timeLimit: 20 },
+        { text: 'В какой пещере Пророку Мухаммаду ﷺ было ниспослано первое откровение?', answers: ['Саур', 'Хира', 'Ухуд', 'Арафат'], correct: [1], timeLimit: 20 },
+        { text: 'С какого повеления начинается первое ниспосланное откровение?', answers: ['«Читай!»', '«Скажи: Он — Аллах Единый»', '«Хвала Аллаху, Господу миров»', '«О завернувшийся!»'], correct: [0], timeLimit: 20 },
+        { text: 'Сколько лет примерно продолжалось ниспослание Корана?', answers: ['Около 10 лет', 'Около 23 лет', 'Около 30 лет', 'Около 40 лет'], correct: [1], timeLimit: 20 },
+        { text: 'Кто был первым муэдзином в Исламе?', answers: ['Абу Бакр ас-Сиддик', 'Умар ибн аль-Хаттаб', 'Билял ибн Рабах', 'Зейд ибн Хариса'], correct: [2], timeLimit: 20 },
+        { text: 'Какое сражение стало первой крупной битвой мусульман?', answers: ['Ухуд', 'Бадр', 'Хандак', 'Хунайн'], correct: [1], timeLimit: 20 },
+        { text: 'Сколько столпов имана (веры)?', answers: ['4', '5', '6', '7'], correct: [2], timeLimit: 20 },
+        { text: 'Какой пророк вместе с сыном Исмаилом возвёл основание Каабы?', answers: ['Нух', 'Ибрахим', 'Муса', 'Юсуф'], correct: [1], timeLimit: 20 },
+        { type: 'truefalse', text: 'По Корану, Ночь Предопределения (Ляйлят аль-Кадр) лучше тысячи месяцев.', correct: [0], timeLimit: 10 },
+        { type: 'truefalse', text: 'Закят аль-фитр выплачивают в конце месяца Шавваль.', correct: [1], timeLimit: 10 },
+        { text: 'Каким по счёту месяцем исламского календаря является Рамадан?', answers: ['7-м', '8-м', '9-м', '10-м'], correct: [2], timeLimit: 20, points: 2 },
+      ],
+    });
+  }
+
+  // Встроенные викторины: добавляются один раз (если ведущий удалил — больше не появятся)
+  const BUILTIN = [demoQuiz, islamQuiz];
+  const STORE_SEEDED = 'qp-seeded';
+
   function loadQuizzes() {
     let list = store.get(STORE_Q, null);
-    if (!Array.isArray(list)) {
-      list = [demoQuiz()];
+    if (!Array.isArray(list)) list = [];
+    const seeded = new Set(store.get(STORE_SEEDED, []));
+    let changed = false;
+    BUILTIN.forEach((make) => {
+      const quiz = make();
+      if (seeded.has(quiz.id)) return;
+      seeded.add(quiz.id);
+      changed = true;
+      if (!list.some((q) => q.id === quiz.id)) list.unshift(quiz);
+    });
+    if (changed) {
       store.set(STORE_Q, list);
+      store.set(STORE_SEEDED, [...seeded]);
     }
     return list.map(normalizeQuizKeepIds);
   }
@@ -188,9 +226,13 @@
       }
       const b = document.createElement('button');
       b.className = `btn btn-sm ${a.cls || ''}`;
-      b.textContent = a.label;
+      if (a.icon) b.innerHTML = a.icon + (a.label ? `<span>${esc(a.label)}</span>` : '');
+      else b.textContent = a.label;
       if (a.id) b.id = a.id;
-      if (a.title) b.title = a.title;
+      if (a.title) {
+        b.title = a.title;
+        b.setAttribute('aria-label', a.title);
+      }
       b.addEventListener('click', a.onClick);
       topActions.appendChild(b);
     });
@@ -200,12 +242,13 @@
 
   function renderLibrary() {
     mode = 'library';
+    Sound.ambience(false);
     renderedKey = '';
     if (stopTimer) stopTimer();
     $('#topbar').hidden = false;
     setTop('', [
       { label: 'Импорт JSON', onClick: () => importFile.click() },
-      { label: '＋ Создать викторину', cls: 'btn-primary', onClick: () => openEditor(normalizeQuiz({ title: '', questions: [blankQuestion()] }), true) },
+      { label: '+ Создать викторину', cls: 'btn-primary', onClick: () => openEditor(normalizeQuiz({ title: '', questions: [blankQuestion()] }), true) },
     ]);
     const list = loadQuizzes();
     const plural = (n) => (n % 10 === 1 && n % 100 !== 11 ? 'вопрос' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'вопроса' : 'вопросов');
@@ -223,7 +266,7 @@
               <div class="meta">${q.questions.length} ${plural(q.questions.length)} · ${new Date(q.updatedAt).toLocaleDateString('ru-RU')}</div>
               <h3>${esc(q.title || 'Без названия')}</h3>
               <div class="actions">
-                <button class="btn btn-primary btn-sm" data-act="play">▶ Запустить</button>
+                <button class="btn btn-primary btn-sm" data-act="play">${ICONS.play} Запустить</button>
                 <button class="btn btn-sm" data-act="edit">Изменить</button>
                 <button class="btn btn-sm btn-ghost" data-act="copy" title="Сделать копию">Копия</button>
                 <button class="btn btn-sm btn-ghost" data-act="export" title="Скачать JSON">JSON</button>
@@ -319,7 +362,8 @@
       { label: 'JSON', cls: 'btn-ghost', title: 'Скачать JSON', onClick: () => exportQuiz(draft) },
       { label: 'Сохранить', onClick: () => saveDraft(false) },
       {
-        label: '▶ Запустить',
+        label: 'Запустить',
+        icon: ICONS.play,
         cls: 'btn-primary',
         onClick: () => {
           const errs = saveDraft(true);
@@ -368,8 +412,8 @@
           <span class="muted" style="font-size:12px">${q.type === 'truefalse' ? 'В/Н' : q.timeLimit + 'с'}</span>
         </button>`).join('')}
       <div style="display:grid;gap:8px;margin-top:6px">
-        <button class="btn btn-sm" id="addQ">＋ Вопрос с вариантами</button>
-        <button class="btn btn-sm btn-ghost" id="addTF">＋ Верно / Неверно</button>
+        <button class="btn btn-sm" id="addQ">+ Вопрос с вариантами</button>
+        <button class="btn btn-sm btn-ghost" id="addTF">+ Верно / Неверно</button>
       </div>`;
     el.querySelectorAll('.qitem').forEach((b) =>
       b.addEventListener('click', () => {
@@ -620,9 +664,22 @@
 
   function gameTop(s) {
     const actions = [
-      { html: `<span class="pill" id="topPlayers">👥 ${s.players.length}</span>` },
+      { html: `<span class="pill">${ICONS.users}<span id="topPlayers">${s.players.length}</span></span>` },
       { html: `<span class="pill">PIN <b style="font-family:var(--font-display);letter-spacing:.05em">${esc(s.pin)}</b></span>` },
-      { label: '⛶', cls: 'btn-ghost btn-icon', title: 'Во весь экран', onClick: () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {})) },
+      {
+        icon: Sound.isMuted() ? ICONS.soundOff : ICONS.soundOn,
+        id: 'soundBtn',
+        cls: 'btn-ghost btn-icon',
+        title: Sound.isMuted() ? 'Включить звук' : 'Выключить звук',
+        onClick: (e) => {
+          const m = Sound.toggle();
+          const b = e.currentTarget;
+          b.innerHTML = m ? ICONS.soundOff : ICONS.soundOn;
+          b.title = m ? 'Включить звук' : 'Выключить звук';
+          b.setAttribute('aria-label', b.title);
+        },
+      },
+      { icon: ICONS.fullscreen, cls: 'btn-ghost btn-icon', title: 'Во весь экран', onClick: () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {})) },
     ];
     if (s.phase !== 'final') {
       actions.push({
@@ -654,12 +711,14 @@
     if (mode !== 'game') return;
     const key = `${s.phase}|${s.qIndex}`;
     const tp = $('#topPlayers');
-    if (tp) tp.textContent = `👥 ${s.players.length}`;
+    if (tp) tp.textContent = s.players.length;
     if (key === renderedKey) return partialUpdate(s);
+    const prevPhase = (renderedKey || '').split('|')[0];
     renderedKey = key;
     if (stopTimer) stopTimer();
     stopTimer = null;
     gameTop(s);
+    phaseSound(s, prevPhase);
     const q = s.question;
 
     switch (s.phase) {
@@ -669,7 +728,7 @@
             <div class="card lobby-top">
               <div>
                 <div class="join-steps">
-                  <div>📱 Наведите камеру телефона на QR-код</div>
+                  <div>Наведите камеру телефона на QR-код</div>
                   <div>или откройте <span class="join-url" id="joinHost"></span> и введите PIN:</div>
                 </div>
                 <div class="pin-label">PIN игры</div>
@@ -683,11 +742,11 @@
               <div class="qr-box"><img id="qrImg" alt="QR-код для входа в игру" /></div>
             </div>
             <div class="lobby-bar">
-              <div class="count">👥 <span id="pCount">${s.players.length}</span></div>
+              <div class="count">${ICONS.users}<span id="pCount">${s.players.length}</span></div>
               <span class="muted" style="font-weight:700">участников</span>
               <span class="spacer"></span>
               <label class="switch"><input type="checkbox" id="lockT" ${s.locked ? 'checked' : ''} /><span class="track"></span><span style="font-weight:700">Закрыть вход</span></label>
-              <button class="btn btn-primary btn-lg" id="startBtn" ${s.players.length ? '' : 'disabled'}>Начать игру ▶</button>
+              <button class="btn btn-primary btn-lg" id="startBtn" ${s.players.length ? '' : 'disabled'}>Начать игру ${ICONS.play}</button>
             </div>
             <div class="players" id="players"></div>
           </div>`;
@@ -698,7 +757,7 @@
           $('#qrImg').src = `/api/qr?data=${encodeURIComponent(url)}`;
           const h = new URL(base).hostname;
           $('#baseWarn').textContent = ['localhost', '127.0.0.1', '[::1]'].includes(h)
-            ? '⚠️ Адрес localhost недоступен с телефонов. Нажмите «Изменить адрес» и укажите IP компьютера в сети или публичный адрес.'
+            ? 'Внимание: адрес localhost недоступен с телефонов. Нажмите «Изменить адрес» и укажите IP компьютера в сети или публичный адрес.'
             : '';
         };
         infoReady.then(fillJoin);
@@ -719,7 +778,7 @@
         });
         $('#lockT').addEventListener('change', (e) => hostAction('lock', { value: e.target.checked }));
         $('#startBtn').addEventListener('click', () => hostAction('start'));
-        lobbyPlayers(s);
+        lobbyPlayers(s, true);
         break;
       }
 
@@ -731,7 +790,7 @@
               <div class="qtext">${esc(q.text)}</div>
               <div class="bar" style="max-width:640px;margin:0 auto"><i id="pbar"></i></div>
             </div></div>
-            <div class="controls"><button class="btn btn-ghost" id="skipBtn">Сразу к ответам ⏭</button></div>
+            <div class="controls"><button class="btn btn-ghost" id="skipBtn">Сразу к ответам ${ICONS.next}</button></div>
           </div>`;
         stopTimer = countdown(s.remainingMs, 4000, (left, frac) => {
           const el = $('#pbar');
@@ -746,16 +805,26 @@
             <div class="qcard">${esc(q.text)}</div>
             <div class="qmid">
               <div class="side"><div class="ring" id="ring">${ringSVG()}</div></div>
-              <div class="img">${q.image ? `<img src="${esc(q.image)}" alt="" />` : `<div style="display:grid;justify-items:center;gap:12px;text-align:center"><span class="pill">Вопрос ${s.qIndex + 1} из ${s.qTotal}</span>${pointsBadge(q)}<span class="muted" style="font-size:20px;font-weight:700">📱 Отвечайте на телефонах</span></div>`}</div>
+              <div class="img">${q.image ? `<img src="${esc(q.image)}" alt="" />` : `<div style="display:grid;justify-items:center;gap:12px;text-align:center"><span class="pill">Вопрос ${s.qIndex + 1} из ${s.qTotal}</span>${pointsBadge(q)}<span class="muted" style="font-size:20px;font-weight:700;display:inline-flex;gap:8px;align-items:center">${ICONS.phone} Отвечайте на телефонах</span></div>`}</div>
               <div class="side">
                 <div class="answered" id="answered">${s.answeredCount}</div>
                 <div class="muted" style="font-weight:700">ответов из <span id="activeCnt">${s.activeCount}</span></div>
-                <button class="btn btn-sm btn-ghost" id="skipBtn" style="margin-top:8px">Завершить приём ⏭</button>
+                <button class="btn btn-sm btn-ghost" id="skipBtn" style="margin-top:8px">Завершить приём ${ICONS.next}</button>
               </div>
             </div>
             ${answerTiles(q, null)}
           </div>`;
-        stopTimer = countdown(s.remainingMs, q.timeLimit * 1000, (left, frac) => updateRing($('#ring'), left, frac));
+        {
+          let lastSec = Math.ceil(s.remainingMs / 1000);
+          stopTimer = countdown(s.remainingMs, q.timeLimit * 1000, (left, frac) => {
+            updateRing($('#ring'), left, frac);
+            const whole = Math.ceil(left / 1000);
+            if (whole !== lastSec) {
+              lastSec = whole;
+              if ($('#ring')) Sound.second(whole);
+            }
+          });
+        }
         $('#skipBtn').addEventListener('click', () => hostAction('next'));
         break;
 
@@ -779,7 +848,7 @@
             ${answerTiles(q, r)}
             <div class="controls" style="align-items:center">
               <span class="muted" style="font-weight:700;margin-right:auto">Ответили ${r.answered} из ${s.players.length} · правильно ${r.correct.reduce((n, i) => n + r.counts[i], 0)}</span>
-              <button class="btn btn-primary btn-lg" id="nextBtn">${last ? 'Итоги игры 🏆' : 'Таблица лидеров →'}</button>
+              <button class="btn btn-primary btn-lg" id="nextBtn">${last ? 'Итоги игры' : 'Таблица лидеров'} ${ICONS.next}</button>
             </div>
           </div>`;
         $('#nextBtn').addEventListener('click', () => hostAction('next'));
@@ -795,14 +864,14 @@
               ${lb.length ? lb.map((p, i) => {
                 const mv = p.prevRank && p.prevRank !== p.rank ? (p.prevRank > p.rank ? `<span class="move up">▲${p.prevRank - p.rank}</span>` : `<span class="move down">▼${p.rank - p.prevRank}</span>`) : '';
                 return `<div class="lb-row" style="animation-delay:${i * 0.08}s">
-                  <span class="rk">${p.rank}</span><span class="av">${esc(p.avatar)}</span>
+                  <span class="rk">${p.rank}</span>${avatar(p.name, p.color, 'av')}
                   <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}${mv}</span>
                   <span class="plus">${p.lastPoints ? '+' + fmt(p.lastPoints) : ''}</span>
                   <span class="sc" data-from="${p.score - p.lastPoints}" data-to="${p.score}">${fmt(p.score - p.lastPoints)}</span>
                 </div>`;
               }).join('') : '<div class="waiting">Нет участников</div>'}
             </div>
-            <div class="controls"><button class="btn btn-primary btn-lg" id="nextBtn">Следующий вопрос →</button></div>
+            <div class="controls"><button class="btn btn-primary btn-lg" id="nextBtn">Следующий вопрос ${ICONS.next}</button></div>
           </div>`;
         setTimeout(() => $$('.lb-row .sc').forEach((el) => animateNumber(el, Number(el.dataset.from), Number(el.dataset.to))), 400);
         $('#nextBtn').addEventListener('click', () => hostAction('next'));
@@ -813,7 +882,7 @@
         const lb = s.leaderboard || [];
         const pod = (p, n) =>
           p
-            ? `<div class="pod p${n}"><div class="who"><div class="av">${esc(p.avatar)}</div><div class="nm">${esc(p.name)}</div></div><div class="block"><div class="place">${n}</div><div class="pts">${fmt(p.score)}</div></div></div>`
+            ? `<div class="pod p${n}"><div class="who">${avatar(p.name, p.color, 'av')}<div class="nm">${esc(p.name)}</div></div><div class="block"><div class="place">${n}</div><div class="pts">${fmt(p.score)}</div></div></div>`
             : `<div class="pod p${n}" style="visibility:hidden"><div class="block"></div></div>`;
         view.innerHTML = `
           <div class="stage fade-in">
@@ -826,7 +895,7 @@
             </div>
             <div class="card" id="allRes" hidden style="padding:8px 16px;overflow:auto">
               <table class="res"><thead><tr><th>Место</th><th>Участник</th><th>Очки</th><th>Верных ответов</th></tr></thead>
-              <tbody>${lb.map((p) => `<tr><td>${p.rank}</td><td>${esc(p.avatar)} ${esc(p.name)}</td><td>${fmt(p.score)}</td><td>${p.correctCount} / ${s.qTotal}</td></tr>`).join('')}</tbody></table>
+              <tbody>${lb.map((p) => `<tr><td>${p.rank}</td><td><span style="display:inline-flex;gap:10px;align-items:center">${avatar(p.name, p.color)} ${esc(p.name)}</span></td><td>${fmt(p.score)}</td><td>${p.correctCount} / ${s.qTotal}</td></tr>`).join('')}</tbody></table>
             </div>
           </div>`;
         if (lb.length) setTimeout(() => mode === 'game' && confetti(5000), 2300);
@@ -852,7 +921,34 @@
     }
   }
 
-  function lobbyPlayers(s) {
+  /** Звуковое сопровождение смены экранов (без музыки: вода, ветер, дерево, часы, птицы) */
+  let revealTimer = 0;
+  function phaseSound(s, prevPhase) {
+    Sound.ambience(s.phase === 'lobby');
+    clearTimeout(revealTimer);
+    switch (s.phase) {
+      case 'preview':
+        if (prevPhase === 'lobby') Sound.start();
+        else Sound.questionIn();
+        break;
+      case 'question':
+        Sound.go();
+        break;
+      case 'reveal':
+        Sound.timeUp();
+        revealTimer = setTimeout(() => Sound.reveal(), 380);
+        break;
+      case 'leaderboard':
+        Sound.leaderboard(Math.min(5, (s.leaderboard || []).length));
+        break;
+      case 'final':
+        if ((s.leaderboard || []).length) Sound.podium();
+        break;
+      default:
+    }
+  }
+
+  function lobbyPlayers(s, initial = false) {
     const wrap = $('#players');
     if (!wrap) return;
     const ids = new Set(s.players.map((p) => p.id));
@@ -866,7 +962,8 @@
         chip.className = 'chip';
         chip.dataset.id = p.id;
         chip.title = 'Нажмите, чтобы удалить участника';
-        chip.innerHTML = `<span class="av">${esc(p.avatar)}</span><span>${esc(p.name)}</span>`;
+        chip.innerHTML = `${avatar(p.name, p.color)}<span>${esc(p.name)}</span>`;
+        if (!initial) Sound.join();
         chip.addEventListener('click', () => confirm(`Удалить «${p.name}» из игры?`) && hostAction('kick', { playerId: p.id }));
         wrap.appendChild(chip);
       }
@@ -887,6 +984,7 @@
     } else if (s.phase === 'question') {
       const a = $('#answered');
       if (a && a.textContent !== String(s.answeredCount)) {
+        if (s.answeredCount > Number(a.textContent)) Sound.answerIn();
         a.textContent = s.answeredCount;
         a.classList.remove('bounce-in');
         void a.offsetWidth;

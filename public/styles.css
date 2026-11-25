@@ -144,6 +144,32 @@ img { max-width: 100%; }
 
 canvas.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 70; }
 
+/* Icons */
+.ico { width: 1.15em; height: 1.15em; flex: none; vertical-align: -0.2em; }
+
+/* Avatar: цветной кружок с инициалами */
+.avatar {
+  display: inline-grid; place-items: center; flex: none; width: 2em; height: 2em; border-radius: 50%;
+  font-family: var(--font-display); font-weight: 700; font-size: 0.8em; line-height: 1; letter-spacing: -0.02em;
+  color: #0b1020; background: var(--c, #c8ff3e); user-select: none;
+}
+.avatar.c0 { --c: #c8ff3e; } .avatar.c1 { --c: #9d86ff; } .avatar.c2 { --c: #ff7aa0; } .avatar.c3 { --c: #4fd1e8; }
+.avatar.c4 { --c: #ffb457; } .avatar.c5 { --c: #5fe39b; } .avatar.c6 { --c: #f9e076; } .avatar.c7 { --c: #7fb0ff; }
+.avatar.c8 { --c: #ff9b7a; } .avatar.c9 { --c: #d9b8ff; }
+.avatar.xl { font-size: 34px; }
+
+/* Rank badge (место) */
+.rank-badge {
+  width: 132px; height: 132px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 800; font-size: 58px; color: #11160a;
+  background: radial-gradient(circle at 35% 30%, #fff8, transparent 45%), var(--rb, var(--accent));
+  box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.08), 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+.rank-badge.r1 { --rb: linear-gradient(160deg, #fff1a8, #f5c542 55%, #c9951a); }
+.rank-badge.r2 { --rb: linear-gradient(160deg, #ffffff, #c9cfdd 55%, #9aa3b8); }
+.rank-badge.r3 { --rb: linear-gradient(160deg, #ffd2a8, #e2955a 55%, #b96a33); }
+.rank-badge.rn { --rb: var(--surface-2); color: var(--text); font-size: 46px; }
+
 @media (max-width: 640px) {
   .answers { gap: 10px; }
   .ans { min-height: 72px; padding: 12px 14px; border-radius: 16px; }

@@ -18,7 +18,7 @@ const MAX_PLAYERS = 300;
 const RECONNECT_GRACE_MS = 8000; // столько ждём игрока после обрыва связи, прежде чем закрыть вопрос досрочно
 const BASE_POINTS = 1000;
 const ALLOWED_TIMES = [5, 10, 20, 30, 45, 60, 90, 120];
-const AVATARS = ['🦊', '🐼', '🐸', '🐙', '🦄', '🐯', '🐧', '🐨', '🦁', '🐵', '🐳', '🦉', '🐝', '🦖', '🐲', '🐰', '🐶', '🐱', '🦝', '🐞'];
+const AVATAR_COLORS = 10; // аватар — цветной кружок с инициалами, цвет выдаётся по очереди
 
 const token = () => crypto.randomBytes(16).toString('hex');
 const id = () => crypto.randomBytes(6).toString('hex');
@@ -93,6 +93,7 @@ class Game {
     this.phaseEndsAt = 0;
     this.questionStartedAt = 0;
     this.answers = new Map(); // playerId -> { index, elapsedMs }
+    this.colorSeq = crypto.randomInt(AVATAR_COLORS);
     this.lastReveal = null;
     this.createdAt = Date.now();
     this.lastActivity = Date.now();
@@ -108,7 +109,7 @@ class Game {
 
   // ---------- Игроки ----------
 
-  addPlayer({ name, avatar, socketId }) {
+  addPlayer({ name, socketId }) {
     if (this.locked) throw new Error('Ведущий закрыл вход в игру');
     if (this.phase === PHASE.FINAL) throw new Error('Игра уже закончилась');
     if (this.players.size >= MAX_PLAYERS) throw new Error('Комната заполнена');
@@ -122,7 +123,7 @@ class Game {
       id: id(),
       token: token(),
       name: clean,
-      avatar: AVATARS.includes(avatar) ? avatar : AVATARS[crypto.randomInt(AVATARS.length)],
+      color: this.colorSeq++ % AVATAR_COLORS,
       score: 0,
       streak: 0,
       correctCount: 0,
@@ -353,7 +354,7 @@ class Game {
       settings: this.settings,
       players: [...this.players.values()]
         .sort((a, b) => a.joinedAt - b.joinedAt)
-        .map((p) => ({ id: p.id, name: p.name, avatar: p.avatar, connected: p.connected, score: p.score })),
+        .map((p) => ({ id: p.id, name: p.name, color: p.color, connected: p.connected, score: p.score })),
       question: q
         ? { text: q.text, type: q.type, answers: q.answers, timeLimit: q.timeLimit, points: q.points, image: q.image }
         : null,
@@ -365,7 +366,7 @@ class Game {
       view.leaderboard = ranking.map((p, i) => ({
         id: p.id,
         name: p.name,
-        avatar: p.avatar,
+        color: p.color,
         score: p.score,
         lastPoints: p.lastPoints,
         rank: i + 1,
@@ -383,7 +384,7 @@ class Game {
     const view = { ...this.baseView(), role: 'player', showOnDevices: this.settings.showOnDevices };
     const ranking = this.ranking();
     const rank = ranking.findIndex((x) => x.id === p.id) + 1;
-    view.me = { id: p.id, name: p.name, avatar: p.avatar, score: p.score, streak: p.streak, rank, total: ranking.length };
+    view.me = { id: p.id, name: p.name, color: p.color, score: p.score, streak: p.streak, rank, total: ranking.length };
     if (q && this.phase !== PHASE.LOBBY) {
       view.question = { type: q.type, answersCount: q.answers.length, timeLimit: q.timeLimit, points: q.points };
       if (this.settings.showOnDevices) {
@@ -469,4 +470,4 @@ class GameManager {
   }
 }
 
-module.exports = { Game, GameManager, PHASE, AVATARS, sanitizeQuiz };
+module.exports = { Game, GameManager, PHASE, sanitizeQuiz };

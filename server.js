@@ -6,7 +6,7 @@ const path = require('path');
 const express = require('express');
 const QRCode = require('qrcode');
 const { Server } = require('socket.io');
-const { GameManager, AVATARS } = require('./src/game');
+const { GameManager } = require('./src/game');
 
 const PORT = Number(process.env.PORT) || 3000;
 // Публичный адрес (например, после деплоя или туннеля): https://my-quiz.onrender.com
@@ -37,7 +37,6 @@ app.get('/api/info', (req, res) => {
   res.json({
     publicUrl: PUBLIC_URL,
     lanUrls: lanAddresses().map((ip) => `http://${ip}:${PORT}`),
-    avatars: AVATARS,
   });
 });
 
@@ -153,7 +152,7 @@ io.on('connection', (socket) => {
     const g = games.get(payload && payload.pin);
     if (!g) return fail(ack, new Error('Игра с таким PIN не найдена'));
     try {
-      const p = g.addPlayer({ name: payload.name, avatar: payload.avatar, socketId: socket.id });
+      const p = g.addPlayer({ name: payload.name, socketId: socket.id });
       socket.data = { role: 'player', pin: g.pin, playerId: p.id };
       ack({ ok: true, token: p.token, playerId: p.id });
       g.emitToPlayer(p);
